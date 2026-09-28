@@ -11,10 +11,10 @@ return new class extends Migration
         Schema::create('detail_pengajuans', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('pengajuan_surat_id')
-                ->constrained('pengajuan_surats')
-                ->cascadeOnDelete();
-
+           $table->foreignId('pengajuan_surat_id')
+            ->unique()
+            ->constrained('pengajuan_surats')
+            ->cascadeOnDelete();
             $table->string('nama_mahasiswa');
             $table->string('nim', 30);
             $table->string('program_studi', 150);

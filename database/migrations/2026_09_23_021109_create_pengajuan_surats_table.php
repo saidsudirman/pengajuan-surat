@@ -11,8 +11,8 @@ return new class extends Migration
         Schema::create('pengajuan_surats', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('user_id')
-                ->constrained('users')
+            $table->foreignId('mahasiswa_id')
+                ->constrained('mahasiswa')
                 ->cascadeOnDelete();
 
             $table->foreignId('jenis_surat_id')
@@ -27,12 +27,11 @@ return new class extends Migration
                 'menunggu',
                 'diproses',
                 'diterima',
-                'ditolak'
+                'ditolak',
+                'selesai'
             ])->default('menunggu');
 
             $table->text('catatan_admin')->nullable();
-
-            $table->string('file_persyaratan')->nullable();
 
             $table->string('file_surat')->nullable();
 
