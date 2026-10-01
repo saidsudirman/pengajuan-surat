@@ -8,9 +8,29 @@ use Illuminate\Http\Request;
 
 class JenisSuratController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $jenisSurats = JenisSurat::latest()->paginate(10);
+        // Query dasar
+        $query = JenisSurat::query();
+
+        // Filter: Search (nama_surat atau deskripsi)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama_surat', 'like', "%{$search}%")
+                    ->orWhere('deskripsi', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter: Status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Urutkan & paginate (with query string agar filter tetap saat pindah halaman)
+        $jenisSurats = $query->latest()
+            ->paginate(10)
+            ->withQueryString();
 
         return view('admin.jenis-surats.index', compact('jenisSurats'));
     }

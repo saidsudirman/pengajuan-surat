@@ -11,14 +11,43 @@ use Illuminate\Support\Facades\Hash;
 
 class MahasiswaController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $mahasiswas = Mahasiswa::with('user')
-            ->latest()
-            ->paginate(10);
+        // Query dasar dengan relasi user
+        $query = Mahasiswa::with('user');
 
-        return view('admin.mahasiswa.index', compact('mahasiswas'));
+        // Filter: Search (Nama, NIM, atau Email)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                    ->orWhere('nim', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($qu) use ($search) {
+                        $qu->where('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // Filter: Program Studi
+        if ($request->filled('program_studi')) {
+            $query->where('program_studi', $request->program_studi);
+        }
+
+        // Urutkan & paginate (withQueryString agar filter tetap saat pindah halaman)
+        $mahasiswas = $query->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        // Ambil daftar program studi unik untuk dropdown filter
+        $programStudis = Mahasiswa::query()
+            ->whereNotNull('program_studi')
+            ->distinct()
+            ->orderBy('program_studi')
+            ->pluck('program_studi');
+
+        return view('admin.mahasiswa.index', compact('mahasiswas', 'programStudis'));
     }
+
 
     public function create()
     {
