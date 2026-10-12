@@ -115,12 +115,12 @@
                                 <div class="detail-block-value">{{ $pengajuan->created_at->format('d F Y') }}</div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <!-- <div class="col-md-6">
                             <div class="detail-block">
                                 <div class="detail-block-label">Instansi Tujuan</div>
                                 <div class="detail-block-value">{{ $pengajuan->instansi_tujuan ?? '-' }}</div>
                             </div>
-                        </div>
+                        </div> -->
                         <div class="col-12">
                             <div class="detail-block">
                                 <div class="detail-block-label">Keperluan</div>

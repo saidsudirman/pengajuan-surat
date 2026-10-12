@@ -16,7 +16,6 @@ class PengajuanSuratController extends Controller
     {
         $query = PengajuanSurat::with(['mahasiswa', 'jenisSurat']);
 
-        // Filter: Search (nama mahasiswa / NIM / nomor pengajuan)
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -28,22 +27,18 @@ class PengajuanSuratController extends Controller
             });
         }
 
-        // Filter: Status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter: Jenis Surat
         if ($request->filled('jenis_surat_id')) {
             $query->where('jenis_surat_id', $request->jenis_surat_id);
         }
 
-        // Filter: Tanggal
         if ($request->filled('tanggal')) {
             $query->whereDate('created_at', $request->tanggal);
         }
 
-        // Ambil data + pagination + dengan query string (filter tetap saat pindah halaman)
         $pengajuans = $query->latest()->paginate(10)->withQueryString();
 
         // Ambil jenis surat untuk dropdown filter
@@ -73,7 +68,7 @@ class PengajuanSuratController extends Controller
         $request->validate([
             'status' => 'required|in:menunggu,diproses,selesai,ditolak',
             'catatan' => 'nullable|string|max:500',
-            'file_surat' => 'nullable|file|mimes:pdf|max:5120',
+            'file_surat' => 'nullable|file|mimes:pdf',
         ]);
 
         DB::beginTransaction();

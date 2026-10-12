@@ -13,7 +13,6 @@ class MahasiswaController extends Controller
 {
     public function index(Request $request)
     {
-        // Query dasar dengan relasi user
         $query = Mahasiswa::with('user');
 
         // Filter: Search (Nama, NIM, atau Email)
