@@ -23,7 +23,8 @@ Route::middleware(['auth', 'role:admin'])
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::resource('jenis-surats', JenisSuratController::class)->except(['show']);
         Route::resource('mahasiswa', MahasiswaController::class);
-        Route::resource('pengajuan-surats', PengajuanSuratController::class)->only(['index', 'show', 'update']);
+        Route::resource('pengajuan-surats', PengajuanSuratController::class)
+    ->only(['index', 'show', 'update']);
     });
 
 Route::middleware(['auth', 'role:mahasiswa'])

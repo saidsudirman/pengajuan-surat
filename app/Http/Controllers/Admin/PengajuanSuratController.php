@@ -4,11 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\JenisSurat;
-use App\Models\User;
 use App\Models\PengajuanSurat;
-use App\Models\RiwayatPengajuan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PengajuanSuratController extends Controller
 {
@@ -63,56 +61,54 @@ class PengajuanSuratController extends Controller
         );
     }
 
-    public function update(Request $request, PengajuanSurat $pengajuanSurat)
-    {
-        $request->validate([
-            'status' => 'required|in:menunggu,diproses,selesai,ditolak',
-            'catatan' => 'nullable|string|max:500',
-            'file_surat' => 'nullable|file|mimes:pdf',
-        ]);
 
-        DB::beginTransaction();
 
-        try {
-            $data = [
-                'status' => $request->status,
-                'catatan_admin' => $request->catatan,
-            ];
 
-            // Update tanggal
-            if ($request->status === 'diproses' && !$pengajuanSurat->tanggal_diproses) {
-                $data['tanggal_diproses'] = now();
-            }
+public function update(Request $request, PengajuanSurat $pengajuanSurat)
+{
+    $validated = $request->validate([
+        'status' => 'required|in:selesai,ditolak',
+        'catatan_admin' => 'nullable|string|max:1000',
+    ]);
 
-            if ($request->status === 'selesai' && !$pengajuanSurat->tanggal_selesai) {
-                $data['tanggal_selesai'] = now();
-            }
+    if (!in_array($pengajuanSurat->status, ['menunggu', 'diproses'], true)) {
+        return back()->with(
+            'error',
+            'Pengajuan tidak dapat diproses. Status saat ini: ' . $pengajuanSurat->status
+        );
+    }
 
-            // Upload file surat
-            if ($request->hasFile('file_surat')) {
-                $file = $request->file('file_surat');
-                $filename = 'surat_' . $pengajuanSurat->nomor_pengajuan . '_' . time() . '.pdf';
-                $data['file_surat'] = $file->storeAs('surat', $filename, 'public');
-            }
+    if ($validated['status'] === 'selesai') {
+        $fileSurat = $pengajuanSurat->file_surat;
 
-            // Update pengajuan
-            $pengajuanSurat->update($data);
+        if (empty($fileSurat)) {
+            return back()->with('error', 'Lokasi file PDF belum tersimpan pada pengajuan.');
+        }
 
-            // Simpan riwayat
-            RiwayatPengajuan::create([
-                'pengajuan_surat_id' => $pengajuanSurat->id,
-                'user_id' => \Illuminate\Support\Facades\Auth::id(),
-                'status' => $request->status,
-                'catatan' => $request->catatan ?? '-',
-            ]);
-
-            DB::commit();
-
-            return back()->with('success', 'Pengajuan berhasil diperbarui.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        if (!Storage::disk('public')->exists($fileSurat)) {
+            return back()->with('error', 'File PDF tidak ditemukan pada lokasi: ' . $fileSurat);
         }
     }
+
+    $pengajuanSurat->update([
+        'status' => $validated['status'],
+        'catatan_admin' => $validated['status'] === 'ditolak'
+            ? ($validated['catatan_admin'] ?? 'Pengajuan ditolak oleh admin.')
+            : null,
+        'tanggal_diproses' => now(),
+        'tanggal_selesai' => $validated['status'] === 'selesai' ? now() : null,
+    ]);
+
+    return redirect()
+        ->route('admin.pengajuan-surats.show', $pengajuanSurat)
+        ->with(
+            'success',
+            $validated['status'] === 'selesai'
+                ? 'Pengajuan berhasil disetujui. Mahasiswa dapat mengunduh surat.'
+                : 'Pengajuan berhasil ditolak.'
+        );
+}
+
+
+
 }

@@ -116,11 +116,11 @@
                             </div>
                         </div>
                         <!-- <div class="col-md-6">
-                            <div class="detail-block">
-                                <div class="detail-block-label">Instansi Tujuan</div>
-                                <div class="detail-block-value">{{ $pengajuan->instansi_tujuan ?? '-' }}</div>
-                            </div>
-                        </div> -->
+                                <div class="detail-block">
+                                    <div class="detail-block-label">Instansi Tujuan</div>
+                                    <div class="detail-block-value">{{ $pengajuan->instansi_tujuan ?? '-' }}</div>
+                                </div>
+                            </div> -->
                         <div class="col-12">
                             <div class="detail-block">
                                 <div class="detail-block-label">Keperluan</div>
@@ -217,6 +217,7 @@
                     </div>
                 @endif
 
+
                 {{-- Download Surat --}}
                 @if($pengajuan->status === 'selesai' && $pengajuan->file_surat)
                     <div class="card-mhs p-3 p-md-4 card-success">
@@ -224,15 +225,30 @@
                             <i class="fa-solid fa-circle-check"></i>
                             Surat Siap Diunduh
                         </h6>
+
                         <p class="mb-3 card-success-text">
-                            Surat Anda sudah selesai dan siap diunduh.
+                            Surat Anda sudah selesai dibuat dan siap diunduh.
                         </p>
+
                         <a href="{{ route('mahasiswa.pengajuan.download', $pengajuan) }}"
                             class="btn-mhs-primary btn-white-solid">
-                            <i class="fa-solid fa-download"></i> Download Surat
+                            <i class="fa-solid fa-download"></i>
+                            Download Surat PDF
                         </a>
                     </div>
+                @elseif($pengajuan->status === 'selesai' && !$pengajuan->file_surat)
+                    <div class="card-mhs p-3 p-md-4">
+                        <h6 class="fw-bold mb-2">
+                            <i class="fa-solid fa-circle-info text-primary-mhs"></i>
+                            Surat Belum Tersedia
+                        </h6>
+                        <p class="text-muted mb-0 info-hint">
+                            Pengajuan sudah selesai, tetapi file surat belum tersedia.
+                            Silakan hubungi admin.
+                        </p>
+                    </div>
                 @endif
+
             </div>
         </div>
 
