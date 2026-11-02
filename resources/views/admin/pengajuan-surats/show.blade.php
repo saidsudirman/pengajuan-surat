@@ -159,39 +159,123 @@
                         </div>
                     </div>
                 </div>
+                
+@if($pengajuanSurat->detailPengajuan && !empty($pengajuanSurat->detailPengajuan->data_tambahan))
+    <div class="card-custom p-4 mb-3">
+        <div class="section-heading">
+            <i class="fa-solid fa-list-check"></i>
+            <h6 class="fw-bold mb-0">Data Tambahan Pengajuan</h6>
+        </div>
 
-                {{-- Dokumen Pendukung --}}
-                @if($pengajuanSurat->dokumenPengajuans && $pengajuanSurat->dokumenPengajuans->count() > 0)
-                    <div class="card-custom p-4">
-                        <div class="section-heading">
-                            <i class="fa-solid fa-paperclip"></i>
-                            <h6 class="fw-bold mb-0">Dokumen Pendukung</h6>
+        <div class="row g-3">
+            @foreach($pengajuanSurat->detailPengajuan->data_tambahan as $namaField => $nilai)
+                <div class="col-md-6">
+                    <div class="detail-block">
+                        <div class="detail-label">
+                            {{ ucwords(str_replace('_', ' ', $namaField)) }}
                         </div>
-
-                        <div class="row g-2">
-                            @foreach($pengajuanSurat->dokumenPengajuans as $dok)
-                                <div class="col-md-6">
-                                    <div class="dokumen-item">
-                                        <div class="dokumen-icon">
-                                            <i class="fa-solid fa-file-pdf"></i>
-                                        </div>
-                                        <div class="flex-grow-1 min-w-0">
-                                            <div class="fw-bold text-truncate" style="font-size: 12.5px;">
-                                                {{ $dok->nama_dokumen }}
-                                            </div>
-                                            <small class="text-muted" style="font-size: 11px;">
-                                                {{ ucfirst($dok->status ?? '-') }}
-                                            </small>
-                                        </div>
-                                        <a href="{{ Storage::url($dok->file) }}" target="_blank" class="btn-icon-doc" title="Lihat">
-                                            <i class="fa-solid fa-eye"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            @endforeach
+                        <div class="detail-value">
+                            {{ is_array($nilai) ? implode(', ', $nilai) : ($nilai ?: '-') }}
                         </div>
                     </div>
-                @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+@else
+    <div class="card-custom p-4 mb-3">
+        <div class="section-heading">
+            <i class="fa-solid fa-list-check"></i>
+            <h6 class="fw-bold mb-0">Data Tambahan Pengajuan</h6>
+        </div>
+        <p class="text-muted mb-0">Tidak ada data tambahan.</p>
+    </div>
+@endif
+
+
+                {{-- Dokumen Pendukung --}}
+
+@if($pengajuanSurat->dokumenPengajuans->count() > 0)
+    <div class="card-custom p-4 mb-3">
+        <div class="section-heading">
+            <i class="fa-solid fa-paperclip"></i>
+            <h6 class="fw-bold mb-0">Dokumen Pendukung</h6>
+        </div>
+
+        <div class="row g-3">
+            @foreach($pengajuanSurat->dokumenPengajuans as $dok)
+                <div class="col-12">
+                    <div class="dokumen-item">
+                        <div class="dokumen-icon">
+                            <i class="fa-solid fa-file-lines"></i>
+                        </div>
+
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-bold text-truncate">
+                                {{ $dok->nama_dokumen }}
+                            </div>
+
+                            <small class="text-muted">
+                                Status:
+                                {{ ucfirst(str_replace('_', ' ', $dok->status)) }}
+                            </small>
+
+                            @if($dok->keterangan)
+                                <div class="text-danger small mt-1">
+                                    {{ $dok->keterangan }}
+                                </div>
+                            @endif
+                        </div>
+
+                        <a href="{{ Storage::url($dok->file) }}"
+                            target="_blank"
+                            class="btn-icon-doc"
+                            title="Lihat dokumen">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                    </div>
+
+                    @if(in_array($pengajuanSurat->status, ['menunggu', 'diproses']))
+                        <form action="{{ route('admin.pengajuan-surats.update', ['pengajuan_surat' => $pengajuanSurat->id]) }}"
+                            method="POST"
+                            class="mt-2">
+                            @csrf
+                            @method('PUT')
+
+                            <input type="hidden" name="dokumen_id" value="{{ $dok->id }}">
+
+                            <div class="mb-2">
+                                <input type="text"
+                                    name="keterangan_dokumen"
+                                    class="form-control-custom"
+                                    placeholder="Keterangan jika dokumen tidak valid">
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit"
+                                    name="status_dokumen"
+                                    value="valid"
+                                    class="btn btn-success btn-sm">
+                                    <i class="fa-solid fa-check"></i>
+                                    Valid
+                                </button>
+
+                                <button type="submit"
+                                    name="status_dokumen"
+                                    value="tidak_valid"
+                                    class="btn btn-danger btn-sm">
+                                    <i class="fa-solid fa-xmark"></i>
+                                    Tidak Valid
+                                </button>
+                            </div>
+                        </form>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
+
             </div>
 
 
@@ -214,84 +298,111 @@
                     </div>
 
 
-                    @if(in_array($pengajuanSurat->status, ['menunggu', 'diproses']))
-                        <form action="{{ route('admin.pengajuan-surats.update', ['pengajuan_surat' => $pengajuanSurat->id]) }}"
-                            method="POST">
-                            @csrf
-                            @method('PUT')
+                    
+@if(in_array($pengajuanSurat->status, ['menunggu', 'diproses']))
+    <form action="{{ route('admin.pengajuan-surats.update', ['pengajuan_surat' => $pengajuanSurat->id]) }}"
+        method="POST">
+        @csrf
+        @method('PUT')
 
-                            <div class="mb-3">
-                                <label for="catatan_admin" class="form-label-custom">
-                                    Catatan / Alasan Penolakan
-                                </label>
+        <div class="mb-3">
+            <label for="catatan_admin" class="form-label-custom">
+                Catatan / Alasan Penolakan
+            </label>
 
-                                <textarea name="catatan_admin" id="catatan_admin" rows="4" class="form-control-custom"
-                                    placeholder="Isi alasan jika pengajuan ditolak...">{{ old('catatan_admin', $pengajuanSurat->catatan_admin) }}</textarea>
+            <textarea name="catatan_admin"
+                id="catatan_admin"
+                rows="4"
+                class="form-control-custom"
+                placeholder="Wajib diisi jika pengajuan ditolak...">{{ old('catatan_admin', $pengajuanSurat->catatan_admin) }}</textarea>
 
-                                @error('catatan_admin')
-                                    <small class="text-danger">{{ $message }}</small>
-                                @enderror
-                            </div>
+            @error('catatan_admin')
+                <small class="text-danger">{{ $message }}</small>
+            @enderror
+        </div>
 
-                            <div class="d-grid gap-2">
-                                <button type="submit" name="status" value="selesai" class="btn btn-success"
-                                    onclick="return confirm('Setujui pengajuan ini? Mahasiswa akan dapat mengunduh PDF surat.')">
-                                    <i class="fa-solid fa-check"></i>
-                                    Setujui Pengajuan
-                                </button>
+        <div class="d-grid gap-2">
+            <button type="submit"
+                name="status"
+                value="diterima"
+                class="btn btn-success"
+                onclick="return confirm('Setujui pengajuan ini?')">
+                <i class="fa-solid fa-check"></i>
+                Setujui Pengajuan
+            </button>
 
-                                <button type="submit" name="status" value="ditolak" class="btn btn-danger"
-                                    onclick="return confirm('Yakin ingin menolak pengajuan ini?')">
-                                    <i class="fa-solid fa-xmark"></i>
-                                    Tolak Pengajuan
-                                </button>
-                            </div>
-                        </form>
-                    @elseif($pengajuanSurat->status === 'selesai')
-                        <div class="alert alert-success">
-                            <i class="fa-solid fa-circle-check"></i>
-                            Pengajuan telah disetujui. Mahasiswa dapat mengunduh surat.
-                        </div>
-                    @elseif($pengajuanSurat->status === 'ditolak')
-                        <div class="alert alert-danger">
-                            <i class="fa-solid fa-circle-xmark"></i>
-                            Pengajuan telah ditolak.
-                        </div>
+            <button type="submit"
+                name="status"
+                value="ditolak"
+                class="btn btn-danger"
+                onclick="return confirm('Yakin ingin menolak pengajuan ini?')">
+                <i class="fa-solid fa-xmark"></i>
+                Tolak Pengajuan
+            </button>
+        </div>
+    </form>
 
-                        @if($pengajuanSurat->catatan_admin)
-                            <div class="detail-block mt-3">
-                                <div class="detail-label">Alasan Penolakan</div>
-                                <div class="detail-value">
-                                    {{ $pengajuanSurat->catatan_admin }}
-                                </div>
-                            </div>
-                        @endif
-                    @endif
+@elseif($pengajuanSurat->status === 'diterima')
+    <div class="alert alert-info">
+        Pengajuan telah disetujui dan siap dibuatkan surat PDF.
+    </div>
 
+    <form action="{{ route('admin.pengajuan-surats.generate-pdf', $pengajuanSurat) }}" method="POST">
+        @csrf
+        <button type="submit" class="btn btn-primary w-100">
+            <i class="fa-solid fa-file-pdf"></i>
+            Buat dan Terbitkan PDF
+        </button>
+    </form>
 
-                    @if($pengajuanSurat->file_surat)
-                        <hr>
+@elseif($pengajuanSurat->status === 'selesai')
+    <div class="alert alert-success">
+        <i class="fa-solid fa-circle-check"></i>
+        Surat telah selesai dan dapat diunduh mahasiswa.
+    </div>
 
-                        <div class="mb-2">
-                            <label class="form-label-custom">PDF Surat</label>
-                            <p class="text-muted small">
-                                PDF telah dibuat dan disimpan.
-                                @if($pengajuanSurat->status !== 'selesai')
-                                    Mahasiswa belum dapat mengunduhnya sebelum disetujui.
-                                @endif
-                            </p>
+@elseif($pengajuanSurat->status === 'ditolak')
+    <div class="alert alert-danger">
+        <i class="fa-solid fa-circle-xmark"></i>
+        Pengajuan telah ditolak.
+    </div>
 
-                            <a href="{{ Storage::url($pengajuanSurat->file_surat) }}" target="_blank"
-                                class="btn-outline-custom w-100 justify-content-center">
-                                <i class="fa-solid fa-file-pdf"></i>
-                                Lihat PDF
-                            </a>
-                        </div>
-                    @else
-                        <div class="alert alert-warning small">
-                            File PDF surat belum tersedia.
-                        </div>
-                    @endif
+    @if($pengajuanSurat->catatan_admin)
+        <div class="detail-block mt-3">
+            <div class="detail-label">Alasan Penolakan</div>
+            <div class="detail-value">
+                {{ $pengajuanSurat->catatan_admin }}
+            </div>
+        </div>
+    @endif
+@endif
+
+@if($pengajuanSurat->file_surat)
+    <hr>
+
+    <div class="mb-2">
+        <label class="form-label-custom">PDF Surat</label>
+
+        <p class="text-muted small">
+            PDF telah dibuat dan disimpan.
+            @if($pengajuanSurat->status !== 'selesai')
+                Mahasiswa belum dapat mengunduhnya sebelum proses selesai.
+            @endif
+        </p>
+
+        <a href="{{ Storage::url($pengajuanSurat->file_surat) }}"
+            target="_blank"
+            class="btn-outline-custom w-100 justify-content-center">
+            <i class="fa-solid fa-file-pdf"></i>
+            Lihat PDF
+        </a>
+    </div>
+@else
+    <div class="alert alert-warning small">
+        File PDF surat belum tersedia.
+    </div>
+@endif
+
                 </div>
             </div>
 

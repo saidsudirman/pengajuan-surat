@@ -15,11 +15,17 @@ class JenisSurat extends Model
         'nama_surat',
         'deskripsi',
         'template_surat',
+        'isi_template',
         'status',
     ];
 
     public function pengajuanSurats()
     {
         return $this->hasMany(PengajuanSurat::class);
+    }
+
+    public function fieldSurats()
+    {
+        return $this->hasMany(FieldSurat::class)->orderBy('urutan');
     }
 }

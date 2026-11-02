@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\JenisSuratController;
 use App\Http\Controllers\Admin\MahasiswaController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PengajuanSuratController;
+use App\Http\Controllers\Admin\PengaturanSuratController;
 use App\Http\Controllers\Mahasiswa\DashboardController as MahasiswaDashboardController;
 use App\Http\Controllers\Mahasiswa\PengajuanController as MahasiswaPengajuanController;
 use App\Http\Controllers\Mahasiswa\ProfilController as MahasiswaProfilController;
@@ -24,7 +25,15 @@ Route::middleware(['auth', 'role:admin'])
         Route::resource('jenis-surats', JenisSuratController::class)->except(['show']);
         Route::resource('mahasiswa', MahasiswaController::class);
         Route::resource('pengajuan-surats', PengajuanSuratController::class)
-    ->only(['index', 'show', 'update']);
+            ->only(['index', 'show', 'update']);
+        Route::get('/pengaturan-surat', [PengaturanSuratController::class, 'index'])
+            ->name('pengaturan-surat.index');
+
+        Route::put('/pengaturan-surat', [PengaturanSuratController::class, 'update'])
+            ->name('pengaturan-surat.update');
+
+        Route::post('/pengajuan-surats/{pengajuan_surat}/generate-pdf', [PengajuanSuratController::class, 'generatePdf'])
+            ->name('pengajuan-surats.generate-pdf');
     });
 
 Route::middleware(['auth', 'role:mahasiswa'])

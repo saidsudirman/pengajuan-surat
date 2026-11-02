@@ -23,16 +23,41 @@
         </div>
 
 
-        @php
-            $statusMap = [
-                'menunggu' => 'Menunggu',
-                'diproses' => 'Diproses',
-                'selesai' => 'Selesai',
-                'ditolak' => 'Ditolak',
-            ];
-            $statusKey = $pengajuan->status;
-            $statusText = $statusMap[$statusKey] ?? 'Menunggu';
-        @endphp
+@php
+    $statusMap = [
+        'menunggu' => 'Menunggu Verifikasi',
+        'diproses' => 'Sedang Diproses',
+        'diterima' => 'Disetujui',
+        'selesai' => 'Selesai',
+        'ditolak' => 'Ditolak',
+    ];
+
+    $statusKey = $pengajuan->status;
+    $statusText = $statusMap[$statusKey] ?? 'Tidak Diketahui';
+
+    $steps = [
+        [
+            'label' => 'Pengajuan',
+            'icon' => 'fa-paper-plane',
+            'done' => true,
+        ],
+        [
+            'label' => 'Verifikasi',
+            'icon' => 'fa-check',
+            'done' => in_array($statusKey, ['diproses', 'diterima', 'selesai']),
+        ],
+        [
+            'label' => 'Persetujuan',
+            'icon' => 'fa-user-check',
+            'done' => in_array($statusKey, ['diterima', 'selesai']),
+        ],
+        [
+            'label' => 'Selesai',
+            'icon' => 'fa-circle-check',
+            'done' => $statusKey === 'selesai',
+        ],
+    ];
+@endphp
 
         {{-- Header Card --}}
         <div class="card-mhs p-3 p-md-4 mb-4">
@@ -46,7 +71,7 @@
                             {{ $pengajuan->jenisSurat->nama_surat ?? '-' }}
                         </div>
                         <small class="text-muted detail-header-date">
-                            Diajukan: {{ $pengajuan->created_at->format('d F Y, H:i') }}
+                            Diajukan: {{ $pengajuan->created_at?->format('d F Y, H:i') ?? '-' }}
                         </small>
                     </div>
                 </div>
@@ -62,32 +87,37 @@
             <div class="col-lg-8">
 
                 {{-- Timeline --}}
-                <div class="card-mhs p-3 p-md-4 mb-3">
-                    <h6 class="fw-bold mb-4 d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-timeline text-primary-mhs"></i>
-                        Timeline Status
-                    </h6>
+<div class="card-mhs p-3 p-md-4 mb-3">
+    <h6 class="fw-bold mb-4 d-flex align-items-center gap-2">
+        <i class="fa-solid fa-timeline text-primary-mhs"></i>
+        Timeline Status
+    </h6>
 
-                    @php
-                        $steps = [
-                            ['label' => 'Pengajuan', 'icon' => 'fa-paper-plane', 'done' => true],
-                            ['label' => 'Diverifikasi', 'icon' => 'fa-check', 'done' => in_array($pengajuan->status, ['diproses', 'selesai'])],
-                            ['label' => 'Diproses', 'icon' => 'fa-spinner', 'done' => $pengajuan->status === 'selesai'],
-                            ['label' => 'Selesai', 'icon' => 'fa-circle-check', 'done' => $pengajuan->status === 'selesai'],
-                        ];
-                    @endphp
-
-                    <div class="timeline-horizontal">
-                        @foreach($steps as $step)
-                            <div class="timeline-step {{ $step['done'] ? 'done' : '' }}">
-                                <div class="timeline-icon">
-                                    <i class="fa-solid {{ $step['icon'] }}"></i>
-                                </div>
-                                <div class="timeline-label">{{ $step['label'] }}</div>
-                            </div>
-                        @endforeach
-                    </div>
+    <div class="timeline-horizontal">
+        @foreach($steps as $step)
+            <div class="timeline-step {{ $step['done'] ? 'done' : '' }}">
+                <div class="timeline-icon">
+                    <i class="fa-solid {{ $step['icon'] }}"></i>
                 </div>
+                <div class="timeline-label">
+                    {{ $step['label'] }}
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    @if($statusKey === 'ditolak')
+        <div class="catatan-admin-box mt-4">
+            <div class="catatan-admin-label">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                Pengajuan Ditolak
+            </div>
+            <div class="catatan-admin-value">
+                {{ $pengajuan->catatan_admin ?? 'Silakan hubungi admin untuk informasi lebih lanjut.' }}
+            </div>
+        </div>
+    @endif
+</div>
 
                 {{-- Informasi Pengajuan --}}
                 <div class="card-mhs p-3 p-md-4 mb-3">
@@ -139,36 +169,119 @@
                     @endif
                 </div>
 
-                @if($pengajuan->dokumenPengajuans && $pengajuan->dokumenPengajuans->count() > 0)
-                    <div class="card-mhs p-3 p-md-4">
-                        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                            <i class="fa-solid fa-paperclip text-primary-mhs"></i>
-                            Dokumen Pendukung
-                        </h6>
+                @if($pengajuan->detailPengajuan && !empty($pengajuan->detailPengajuan->data_tambahan))
+    <div class="card-mhs p-3 p-md-4 mb-3">
+        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-list-check text-primary-mhs"></i>
+            Data Tambahan Pengajuan
+        </h6>
 
-                        <div class="row g-2">
-                            @foreach($pengajuan->dokumenPengajuans as $dok)
-                                <div class="col-md-6">
-                                    <div class="dokumen-item">
-                                        <div class="dokumen-icon">
-                                            <i class="fa-solid fa-file-pdf"></i>
-                                        </div>
-                                        <div class="flex-grow-1 min-w-0">
-                                            <div class="fw-bold text-truncate dokumen-nama">{{ $dok->nama_dokumen }}</div>
-                                            <small class="text-muted dokumen-ukuran">
-                                                {{ ucfirst($dok->status ?? '-') }}
-                                            </small>
-                                        </div>
-                                        <a href="{{ Storage::url($dok->file) }}" target="_blank" class="btn-icon-doc" title="Lihat">
-                                            <i class="fa-solid fa-eye"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            @endforeach
+        <div class="row g-3">
+            @foreach($pengajuan->jenisSurat->fieldSurats as $field)
+                @php
+                    $data = $pengajuan->detailPengajuan->data_tambahan ?? [];
+                    $value = $data[$field->nama_field] ?? null;
+                @endphp
+
+                @if($value !== null && $value !== '')
+                    <div class="col-md-6">
+                        <div class="detail-block">
+                            <div class="detail-block-label">
+                                {{ $field->label }}
+                            </div>
+                            <div class="detail-block-value">
+                                {{ $value }}
+                            </div>
                         </div>
                     </div>
                 @endif
+            @endforeach
+        </div>
+    </div>
+@endif
+
+@if($pengajuan->dokumenPengajuans->count() > 0)
+    <div class="card-mhs p-3 p-md-4 mb-3">
+        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-paperclip text-primary-mhs"></i>
+            Dokumen Pendukung
+        </h6>
+
+        <div class="row g-2">
+            @foreach($pengajuan->dokumenPengajuans as $dok)
+                <div class="col-md-6">
+                    <div class="dokumen-item">
+                        <div class="dokumen-icon">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </div>
+
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-bold text-truncate dokumen-nama">
+                                {{ $dok->nama_dokumen }}
+                            </div>
+
+                            <small class="text-muted dokumen-ukuran">
+                                @if($dok->status === 'valid')
+                                    <span class="text-success">Dokumen Valid</span>
+                                @elseif($dok->status === 'tidak_valid')
+                                    <span class="text-danger">Dokumen Tidak Valid</span>
+                                @else
+                                    <span class="text-warning">Menunggu Pemeriksaan</span>
+                                @endif
+                            </small>
+
+                            @if($dok->keterangan)
+                                <div class="small text-muted">
+                                    {{ $dok->keterangan }}
+                                </div>
+                            @endif
+                        </div>
+
+                        <a href="{{ Storage::disk('public')->url($dok->file) }}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="btn-icon-doc"
+                           title="Lihat dokumen">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
             </div>
+
+            @if($pengajuan->riwayatPengajuans->count() > 0)
+    <div class="card-mhs p-3 p-md-4 mb-3">
+        <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-primary-mhs"></i>
+            Riwayat Pengajuan
+        </h6>
+
+        @foreach($pengajuan->riwayatPengajuans->sortBy('created_at') as $riwayat)
+            <div class="info-row">
+                <div class="d-flex justify-content-between align-items-center gap-2">
+                    <strong class="text-capitalize">
+                        {{ str_replace('_', ' ', $riwayat->status) }}
+                    </strong>
+
+                    <small class="text-muted">
+                        {{ $riwayat->created_at?->format('d M Y, H:i') }}
+                    </small>
+                </div>
+
+                <div class="small text-muted mt-1">
+                    {{ $riwayat->catatan ?? '-' }}
+                </div>
+
+                <div class="small text-muted mt-1">
+                    Oleh: {{ $riwayat->user->name ?? 'Pengguna' }}
+                </div>
+            </div>
+        @endforeach
+    </div>
+@endif
 
             {{-- Sidebar --}}
             <div class="col-lg-4">
@@ -565,6 +678,10 @@
 
         .btn-white-solid:hover {
             background: #F0FDF4;
+            color: #047857;
+        }
+        .badge-status-diterima {
+            background: #D1FAE5;
             color: #047857;
         }
 

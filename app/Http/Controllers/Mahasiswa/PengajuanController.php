@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Mahasiswa;
 
 use App\Http\Controllers\Controller;
+use App\Models\DetailPengajuan;
+use App\Models\DokumenPengajuan;
 use App\Models\JenisSurat;
 use App\Models\PengajuanSurat;
-use App\Models\DokumenPengajuan;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\RiwayatPengajuan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -61,7 +62,8 @@ class PengajuanController extends Controller
 
         abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
 
-        $jenisSurats = JenisSurat::where('status', 'aktif')
+        $jenisSurats = JenisSurat::with('fieldSurats')
+            ->where('status', 'aktif')
             ->orderBy('nama_surat')
             ->get();
 
@@ -73,7 +75,11 @@ class PengajuanController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $mahasiswa = Auth::user()->mahasiswa;
+
+        abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
+
+        $validated = $request->validate([
             'jenis_surat_id' => [
                 'required',
                 'integer',
@@ -84,6 +90,10 @@ class PengajuanController extends Controller
                 'string',
                 'min:10',
                 'max:500',
+            ],
+            'data_tambahan' => [
+                'nullable',
+                'array',
             ],
             'dokumen' => [
                 'nullable',
@@ -101,49 +111,95 @@ class PengajuanController extends Controller
             'keperluan.min' => 'Keperluan minimal 10 karakter.',
             'keperluan.max' => 'Keperluan maksimal 500 karakter.',
             'dokumen.*.mimes' => 'Dokumen harus berupa PDF, JPG, atau PNG.',
-            'dokumen.*.max' => 'Ukuran dokumen maksimal 2 MB.',
+            'dokumen.*.max' => 'Ukuran setiap dokumen maksimal 2 MB.',
         ]);
 
-        $mahasiswa = Auth::user()->mahasiswa;
+        $jenisSurat = JenisSurat::with('fieldSurats')
+            ->where('status', 'aktif')
+            ->findOrFail($validated['jenis_surat_id']);
 
-        abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
+        $dynamicRules = [];
 
-        $jenisSurat = JenisSurat::where('status', 'aktif')
-            ->findOrFail($request->jenis_surat_id);
+        foreach ($jenisSurat->fieldSurats as $field) {
+            $aturan = $field->wajib_diisi
+                ? ['required']
+                : ['nullable'];
+
+            switch ($field->tipe) {
+                case 'number':
+                    $aturan[] = 'numeric';
+                    break;
+
+                case 'date':
+                    $aturan[] = 'date';
+                    break;
+
+                case 'email':
+                    $aturan[] = 'email';
+                    break;
+
+                default:
+                    $aturan[] = 'string';
+                    $aturan[] = 'max:2000';
+                    break;
+            }
+
+            $dynamicRules['data_tambahan.' . $field->nama_field] = $aturan;
+        }
+
+        $validatedDynamic = $request->validate($dynamicRules);
+
+        $fieldDiizinkan = $jenisSurat->fieldSurats
+            ->pluck('nama_field')
+            ->all();
+
+        $dataTambahan = collect(
+            $validatedDynamic['data_tambahan'] ?? []
+        )->only($fieldDiizinkan)->all();
 
         $uploadedPaths = [];
-        $pdfPath = null;
 
         try {
-            $pengajuan = DB::transaction(function () use ($request, $mahasiswa, $jenisSurat, &$uploadedPaths, &$pdfPath) {
-                $nomorPengajuan = 'SRT-' . now()->format('Ymd') .
-                    '-' . strtoupper(Str::random(4));
-
+            $pengajuan = DB::transaction(function () use (
+                $request,
+                $mahasiswa,
+                $jenisSurat,
+                $validated,
+                $dataTambahan,
+                &$uploadedPaths
+            ) {
                 $pengajuan = PengajuanSurat::create([
                     'mahasiswa_id' => $mahasiswa->id,
                     'jenis_surat_id' => $jenisSurat->id,
-                    'nomor_pengajuan' => $nomorPengajuan,
-                    'keperluan' => $request->keperluan,
+                    'nomor_pengajuan' => 'PGJ-' .
+                        now()->format('Ymd') . '-' .
+                        strtoupper(Str::random(8)),
+                    'keperluan' => $validated['keperluan'],
                     'status' => 'menunggu',
                     'tanggal_diproses' => null,
                     'tanggal_selesai' => null,
                 ]);
 
+                DetailPengajuan::create([
+                    'pengajuan_surat_id' => $pengajuan->id,
+                    'data_tambahan' => $dataTambahan,
+                ]);
+
                 if ($request->hasFile('dokumen')) {
                     foreach ($request->file('dokumen') as $file) {
-                        $filename = now()->format('YmdHis') .
-                            '_' . Str::random(8) .
+                        $namaFile = now()->format('YmdHis') .
+                            '_' . Str::random(12) .
                             '.' . $file->getClientOriginalExtension();
 
                         $path = $file->storeAs(
                             'pengajuan_dokumen',
-                            $filename,
+                            $namaFile,
                             'public'
                         );
 
                         if (!$path) {
                             throw new \RuntimeException(
-                                'Dokumen persyaratan gagal disimpan.'
+                                'Dokumen gagal disimpan.'
                             );
                         }
 
@@ -159,101 +215,26 @@ class PengajuanController extends Controller
                     }
                 }
 
-                /*
-                 * Pembuatan otomatis saat ini hanya disiapkan
-                 * untuk Surat Keterangan Aktif Kuliah.
-                 *
-                 * Jenis surat lain memerlukan template masing-masing.
-                 */
-                if (
-                    Str::contains(
-                        Str::lower($jenisSurat->nama_surat),
-                        'aktif kuliah'
-                    )
-                ) {
-                    $bulanRomawi = [
-                        1 => 'I',
-                        2 => 'II',
-                        3 => 'III',
-                        4 => 'IV',
-                        5 => 'V',
-                        6 => 'VI',
-                        7 => 'VII',
-                        8 => 'VIII',
-                        9 => 'IX',
-                        10 => 'X',
-                        11 => 'XI',
-                        12 => 'XII',
-                    ];
-
-                    $nomorUrut = PengajuanSurat::whereNotNull('nomor_surat')->count() + 1;
-
-                    $nomorSurat = str_pad($nomorUrut, 3, '0', STR_PAD_LEFT)
-                        . '/UNDIPA/H.1/'
-                        . $bulanRomawi[now()->month]
-                        . '/'
-                        . now()->year;
-
-                    $pdf = Pdf::loadView(
-                        'pdf.surat-aktif-kuliah',
-                        [
-                            'nomorSurat' => $nomorSurat,
-                            'mahasiswa' => $mahasiswa,
-                            'namaPejabat' => 'Belum ditetapkan',
-                            'nipPejabat' => '-',
-                            'jabatanPejabat' => 'Pejabat berwenang',
-                            'semester' => $mahasiswa->semester ?? '-',
-                            'periode' => $mahasiswa->tahun_akademik ?? '-',
-                            'tanggalSurat' => now()->translatedFormat('d F Y'),
-                        ]
-                    )->setPaper('a4', 'portrait');
-
-                    $pdfPath = 'surat/' . $pengajuan->id .
-                        '_' . Str::random(8) . '.pdf';
-
-                    $saved = Storage::disk('public')->put(
-                        $pdfPath,
-                        $pdf->output()
-                    );
-
-                    if (!$saved) {
-                        throw new \RuntimeException(
-                            'PDF surat gagal disimpan.'
-                        );
-                    }
-
-                    /*
-                     * Simpan nomor surat dan lokasi PDF.
-                     * Nomor AUTO merupakan nomor contoh, bukan
-                     * nomor surat resmi yang ditetapkan kampus.
-                     */
-                    $pengajuan->update([
-                        'nomor_surat' => $nomorSurat,
-                        'file_surat' => $pdfPath,
-                        'status' => 'menunggu',
-                        'tanggal_diproses' => null,
-                        'tanggal_selesai' => null,
-                    ]);
-                }
+                RiwayatPengajuan::create([
+                    'pengajuan_surat_id' => $pengajuan->id,
+                    'user_id' => Auth::id(),
+                    'status' => 'menunggu',
+                    'catatan' => 'Mahasiswa mengajukan surat.',
+                ]);
 
                 return $pengajuan;
             });
 
-            $pesan = $pengajuan->file_surat
-                ? 'PDF contoh berhasil dibuat. Dokumen belum menjadi surat resmi sampai format, nomor surat, dan pengesahannya disetujui kampus.'
-                : 'Pengajuan tersimpan. Template otomatis untuk jenis surat ini belum tersedia.';
-
             return redirect()
                 ->route('mahasiswa.pengajuan.show', $pengajuan)
-                ->with('success', $pesan);
+                ->with(
+                    'success',
+                    'Pengajuan surat berhasil dikirim dan menunggu verifikasi admin.'
+                );
 
         } catch (Throwable $e) {
             foreach ($uploadedPaths as $path) {
                 Storage::disk('public')->delete($path);
-            }
-
-            if ($pdfPath) {
-                Storage::disk('public')->delete($pdfPath);
             }
 
             report($e);
@@ -262,7 +243,7 @@ class PengajuanController extends Controller
                 ->withInput()
                 ->with(
                     'error',
-                    'Pengajuan gagal diproses. Periksa konfigurasi PDF dan log Laravel.'
+                    'Pengajuan gagal disimpan. Silakan periksa kembali data dan dokumen.'
                 );
         }
     }
@@ -280,8 +261,11 @@ class PengajuanController extends Controller
         );
 
         $pengajuan->load([
-            'jenisSurat',
+            'mahasiswa',
+            'jenisSurat.fieldSurats',
+            'detailPengajuan',
             'dokumenPengajuans',
+            'riwayatPengajuans.user',
         ]);
 
         return view(
@@ -294,7 +278,7 @@ class PengajuanController extends Controller
     {
         $mahasiswa = Auth::user()->mahasiswa;
 
-        abort_if(!$mahasiswa, 403);
+        abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
 
         abort_if(
             (int) $pengajuan->mahasiswa_id !== (int) $mahasiswa->id,
@@ -309,16 +293,24 @@ class PengajuanController extends Controller
             );
         }
 
-        $pengajuan->update([
-            'status' => 'ditolak',
-            'catatan_admin' => 'Dibatalkan oleh mahasiswa.',
-        ]);
+        DB::transaction(function () use ($pengajuan) {
+            $pengajuan->update([
+                'status' => 'ditolak',
+                'catatan_admin' => 'Pengajuan dibatalkan oleh mahasiswa.',
+            ]);
+
+            RiwayatPengajuan::create([
+                'pengajuan_surat_id' => $pengajuan->id,
+                'user_id' => Auth::id(),
+                'status' => 'ditolak',
+                'catatan' => 'Pengajuan dibatalkan oleh mahasiswa.',
+            ]);
+        });
 
         return redirect()
             ->route('mahasiswa.pengajuan.index')
             ->with('success', 'Pengajuan berhasil dibatalkan.');
     }
-
 
     public function download(PengajuanSurat $pengajuan)
     {
@@ -327,7 +319,7 @@ class PengajuanController extends Controller
         abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
 
         abort_if(
-            $pengajuan->mahasiswa_id !== $mahasiswa->id,
+            (int) $pengajuan->mahasiswa_id !== (int) $mahasiswa->id,
             403,
             'Anda tidak memiliki akses ke surat ini.'
         );
@@ -345,7 +337,6 @@ class PengajuanController extends Controller
             'File surat tidak ditemukan.'
         );
 
-
         $nomorFile = $pengajuan->nomor_surat
             ?: $pengajuan->nomor_pengajuan;
 
@@ -355,14 +346,10 @@ class PengajuanController extends Controller
             $nomorFile
         );
 
-        $namaFile = 'Surat_' . $nomorFile . '.pdf';
-
         return response()->download(
             Storage::disk('public')->path($pengajuan->file_surat),
-            $namaFile,
+            'Surat_' . $nomorFile . '.pdf',
             ['Content-Type' => 'application/pdf']
         );
-
     }
-
 }

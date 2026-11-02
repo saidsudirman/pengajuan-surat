@@ -48,6 +48,7 @@
                             @foreach($jenisSurats as $js)
                                 <option value="{{ $js->id }}"
                                         data-deskripsi="{{ $js->deskripsi }}"
+                                        data-template="{{ $js->isi_template }}"
                                         {{ old('jenis_surat_id') == $js->id ? 'selected' : '' }}>
                                     {{ $js->nama_surat }}
                                 </option>
@@ -62,6 +63,48 @@
                         <div id="deskripsiSurat" class="info-box-mhs mt-2 d-none">
                             <small></small>
                         </div>
+
+                        <div id="templateSuratBox" class="mt-3 d-none">
+    <label class="form-label-custom">Format Surat</label>
+    <pre id="templateSuratContent" class="template-preview"></pre>
+</div>
+
+<div id="fieldDinamisContainer" class="mt-3">
+    @foreach($jenisSurats as $js)
+        <div class="field-jenis-surat d-none"
+             data-jenis-id="{{ $js->id }}">
+
+            @foreach($js->fieldSurats as $field)
+                <div class="mb-3">
+                    <label class="form-label-custom">
+                        {{ $field->label }}
+                        @if($field->wajib_diisi)
+                            <span class="text-danger">*</span>
+                        @endif
+                    </label>
+
+                    @if($field->tipe === 'textarea')
+                        <textarea
+                            name="data_tambahan[{{ $field->nama_field }}]"
+                            class="form-control-custom"
+                            rows="3"
+                            {{ $field->wajib_diisi ? 'required' : '' }}
+                        >{{ old('data_tambahan.'.$field->nama_field) }}</textarea>
+                    @else
+                        <input
+                            type="{{ $field->tipe }}"
+                            name="data_tambahan[{{ $field->nama_field }}]"
+                            class="form-control-custom"
+                            value="{{ old('data_tambahan.'.$field->nama_field) }}"
+                            {{ $field->wajib_diisi ? 'required' : '' }}
+                        >
+                    @endif
+                </div>
+            @endforeach
+
+        </div>
+    @endforeach
+</div>
                     </div>
 
                     <div class="mb-3">
@@ -155,6 +198,18 @@
 
 @section('styles')
 <style>
+    .template-preview {
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        background: #f8fafc;
+        border: 1px solid var(--slate-200);
+        border-radius: 10px;
+        padding: 16px;
+        font-family: "Times New Roman", serif;
+        font-size: 13px;
+        color: var(--dark);
+        min-height: 100px;
+    }
     .text-primary-mhs { color: var(--primary) !important; }
 
     .form-label-custom {
@@ -257,15 +312,31 @@
 </style>
 @endsection
 
+
 @section('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
     const select = document.getElementById('jenisSuratSelect');
     const deskripsiBox = document.getElementById('deskripsiSurat');
+    const templateBox = document.getElementById('templateSuratBox');
+    const templateContent = document.getElementById('templateSuratContent');
+    
 
-    select?.addEventListener('change', function() {
-        const opt = this.options[this.selectedIndex];
-        const deskripsi = opt.dataset.deskripsi;
+    function tampilkanJenisSurat() {
+        const id = select.value;
+        const opt = select.options[select.selectedIndex];
+        const deskripsi = opt?.dataset.deskripsi;
+        const template = opt?.dataset.template;
+
+        document.querySelectorAll('.field-jenis-surat').forEach(function(element) {
+            const aktif = element.dataset.jenisId === id;
+
+            element.classList.toggle('d-none', !aktif);
+
+            element.querySelectorAll('input, textarea, select').forEach(function(input) {
+                input.disabled = !aktif;
+            });
+        });
 
         if (deskripsi && deskripsi.trim() !== '') {
             deskripsiBox.querySelector('small').textContent = deskripsi;
@@ -273,13 +344,26 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             deskripsiBox.classList.add('d-none');
         }
-    });
+
+        if (id && template && template.trim() !== '') {
+            templateContent.textContent = template;
+            templateBox.classList.remove('d-none');
+        } else {
+            templateContent.textContent = '';
+            templateBox.classList.add('d-none');
+        }
+    }
+
+    select?.addEventListener('change', tampilkanJenisSurat);
+
+    tampilkanJenisSurat();
 
     const input = document.getElementById('dokumenInput');
     const preview = document.getElementById('previewFiles');
 
     input?.addEventListener('change', function() {
         preview.innerHTML = '';
+
         if (this.files.length === 0) return;
 
         const info = document.createElement('div');
@@ -291,8 +375,10 @@ document.addEventListener('DOMContentLoaded', function() {
         Array.from(this.files).forEach(file => {
             const size = (file.size / 1024).toFixed(1);
             const item = document.createElement('div');
+
             item.className = 'file-preview-item';
             item.innerHTML = '<i class="fa-solid fa-file text-primary-mhs"></i><span class="file-name">' + file.name + '</span><span class="file-size">' + size + ' KB</span>';
+
             preview.appendChild(item);
         });
     });
@@ -310,7 +396,15 @@ document.addEventListener('DOMContentLoaded', function() {
         margin-bottom: 6px;
         font-size: 12.5px;
     }
-    .file-name { flex: 1; font-weight: 600; }
-    .file-size { color: var(--slate-500); font-size: 11px; }
+
+    .file-name {
+        flex: 1;
+        font-weight: 600;
+    }
+
+    .file-size {
+        color: var(--slate-500);
+        font-size: 11px;
+    }
 </style>
 @endsection

@@ -101,6 +101,58 @@
                             <i class="fa-solid fa-info-circle"></i> Nama file template surat (opsional).
                         </small>
                     </div>
+                    
+{{-- Isi Template Surat --}}
+<div class="mb-4">
+    <label class="form-label-custom">
+        Isi Template Surat <span class="text-danger">*</span>
+    </label>
+
+    <textarea
+       name="isi_template"
+        id="isi_template"
+        rows="12"
+        class="form-control-custom @error('isi_template') is-invalid @enderror"
+        style="padding-left: 16px; resize: vertical; font-family: monospace;"
+        placeholder="Contoh:&#10;SURAT KETERANGAN AKTIF KULIAH&#10;&#10;Yang bertanda tangan di bawah ini menerangkan bahwa:&#10;Nama: @{{nama_mahasiswa}}&#10;NIM: @{{nim}}&#10;Program Studi: @{{program_studi}}&#10;&#10;Demikian surat ini dibuat..."
+        required>{{ old('isi_template') }}</textarea>
+
+    @error('isi_template')
+        <div class="invalid-feedback-custom">
+            <i class="fa-solid fa-circle-exclamation"></i> {{ $message }}
+        </div>
+    @enderror
+
+    <small class="text-muted">
+        Gunakan placeholder seperti @{{nama_mahasiswa}},
+        @{{nim}}, dan @{{program_studi}} untuk mengambil data mahasiswa.
+    </small>
+</div>
+
+{{-- Field Formulir Mahasiswa --}}
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <label class="form-label-custom mb-1">
+                Formulir Tambahan Mahasiswa
+            </label>
+            <small class="text-muted">
+                Tambahkan kolom yang harus diisi mahasiswa.
+            </small>
+        </div>
+
+        <button type="button" class="btn-outline-custom" id="tambahField">
+            <i class="fa-solid fa-plus"></i> Tambah Field
+        </button>
+    </div>
+
+    <div id="daftarField"></div>
+
+    @error('fields')
+        <div class="invalid-feedback-custom">{{ $message }}</div>
+    @enderror
+</div>
+
 
                     {{-- Status --}}
                     <div class="mb-4">
@@ -440,5 +492,72 @@
             });
         });
     });
+
+    
+let fieldIndex = 0;
+
+document.getElementById('tambahField').addEventListener('click', function () {
+    const container = document.getElementById('daftarField');
+
+    const html = `
+        <div class="card-custom p-3 mb-3 field-item">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <strong class="small">Field Formulir</strong>
+                <button type="button" class="btn-action btn-action-delete hapus-field">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label-custom">Label Field</label>
+                <input type="text"
+                    name="fields[${fieldIndex}][label]"
+                    class="form-control-custom"
+                    placeholder="Contoh: Nama Instansi"
+                    required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label-custom">Nama Field</label>
+                <input type="text"
+                    name="fields[${fieldIndex}][nama_field]"
+                    class="form-control-custom"
+                    placeholder="Contoh: nama_instansi"
+                    pattern="[a-z][a-z0-9_]*"
+                    required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label-custom">Tipe Input</label>
+                <select name="fields[${fieldIndex}][tipe]" class="form-control-custom">
+                    <option value="text">Teks</option>
+                    <option value="textarea">Teks Panjang</option>
+                    <option value="date">Tanggal</option>
+                    <option value="number">Angka</option>
+                    <option value="email">Email</option>
+                </select>
+            </div>
+
+            <label class="d-flex align-items-center gap-2 small">
+                <input type="checkbox"
+                    name="fields[${fieldIndex}][wajib_diisi]"
+                    value="1" checked>
+                Wajib diisi mahasiswa
+            </label>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', html);
+    fieldIndex++;
+});
+
+document.getElementById('daftarField').addEventListener('click', function (e) {
+    const button = e.target.closest('.hapus-field');
+
+    if (button) {
+        button.closest('.field-item').remove();
+    }
+});
+
 </script>
 @endsection

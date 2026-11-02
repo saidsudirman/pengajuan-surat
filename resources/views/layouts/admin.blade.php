@@ -973,8 +973,14 @@
 
             <a href="{{ route('admin.pengajuan-surats.index') }}"
                 class="{{ request()->routeIs('admin.pengajuan-surats.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-envelope-open-text"></i>
+                <i class="fa-solid fa-file-signature"></i>
                 <span>Pengajuan Surat</span>
+            </a>
+
+            <a href="{{ route('admin.pengaturan-surat.index') }}"
+                class="{{ request()->routeIs('admin.pengaturan-surat.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-file-lines"></i>
+                <span>Pengaturan Surat</span>
             </a>
 
             <a href="{{ route('admin.jenis-surats.index') }}"

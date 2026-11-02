@@ -17,6 +17,10 @@ class DetailPengajuan extends Model
         'data_tambahan',
     ];
 
+    protected $casts = [
+        'data_tambahan' => 'array',
+    ];
+
     public function pengajuanSurat()
     {
         return $this->belongsTo(PengajuanSurat::class);
