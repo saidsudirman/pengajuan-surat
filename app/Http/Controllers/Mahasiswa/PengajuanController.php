@@ -168,12 +168,45 @@ class PengajuanController extends Controller
                 $dataTambahan,
                 &$uploadedPaths
             ) {
+                $tahun = now()->year;
+
+                $bulanRomawi = [
+                    1 => 'I',
+                    2 => 'II',
+                    3 => 'III',
+                    4 => 'IV',
+                    5 => 'V',
+                    6 => 'VI',
+                    7 => 'VII',
+                    8 => 'VIII',
+                    9 => 'IX',
+                    10 => 'X',
+                    11 => 'XI',
+                    12 => 'XII',
+                ];
+
+                $nomorUrut = PengajuanSurat::whereYear('created_at', $tahun)
+                    ->lockForUpdate()
+                    ->count() + 1;
+
+                do {
+                    $nomorPengajuan = $nomorUrut . '/UNDIPA/H.1/' .
+                        $bulanRomawi[now()->month] . '/' . $tahun;
+
+                    $nomorSudahDigunakan = PengajuanSurat::where(
+                        'nomor_pengajuan',
+                        $nomorPengajuan
+                    )->exists();
+
+                    if ($nomorSudahDigunakan) {
+                        $nomorUrut++;
+                    }
+                } while ($nomorSudahDigunakan);
+
                 $pengajuan = PengajuanSurat::create([
                     'mahasiswa_id' => $mahasiswa->id,
                     'jenis_surat_id' => $jenisSurat->id,
-                    'nomor_pengajuan' => 'PGJ-' .
-                        now()->format('Ymd') . '-' .
-                        strtoupper(Str::random(8)),
+                    'nomor_pengajuan' => $nomorPengajuan,
                     'keperluan' => $validated['keperluan'],
                     'status' => 'menunggu',
                     'tanggal_diproses' => null,
