@@ -175,13 +175,48 @@
             </table>
         </div>
 
+        {{-- Custom Pagination (Aman & Anti Hancur) --}}
         @if($pengajuans->hasPages())
         <div class="p-3 border-top d-flex flex-wrap justify-content-between align-items-center gap-2" style="border-color: var(--slate-200) !important;">
             <small class="text-muted">
                 Menampilkan {{ $pengajuans->firstItem() }}–{{ $pengajuans->lastItem() }}
                 dari {{ $pengajuans->total() }} pengajuan
             </small>
-            {{ $pengajuans->links() }}
+            
+            <ul class="pagination-custom mb-0">
+                {{-- Previous Page Link --}}
+                @if ($pengajuans->onFirstPage())
+                    <li class="page-item disabled"><span class="page-link"><i class="fa-solid fa-chevron-left"></i></span></li>
+                @else
+                    <li class="page-item"><a class="page-link" href="{{ $pengajuans->previousPageUrl() }}" rel="prev"><i class="fa-solid fa-chevron-left"></i></a></li>
+                @endif
+
+                {{-- Pagination Elements --}}
+                @foreach ($pengajuans->links()->elements as $element)
+                    {{-- "Three Dots" Separator --}}
+                    @if (is_string($element))
+                        <li class="page-item disabled"><span class="page-link">{{ $element }}</span></li>
+                    @endif
+
+                    {{-- Array Of Links --}}
+                    @if (is_array($element))
+                        @foreach ($element as $page => $url)
+                            @if ($page == $pengajuans->currentPage())
+                                <li class="page-item active"><span class="page-link">{{ $page }}</span></li>
+                            @else
+                                <li class="page-item"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>
+                            @endif
+                        @endforeach
+                    @endif
+                @endforeach
+
+                {{-- Next Page Link --}}
+                @if ($pengajuans->hasMorePages())
+                    <li class="page-item"><a class="page-link" href="{{ $pengajuans->nextPageUrl() }}" rel="next"><i class="fa-solid fa-chevron-right"></i></a></li>
+                @else
+                    <li class="page-item disabled"><span class="page-link"><i class="fa-solid fa-chevron-right"></i></span></li>
+                @endif
+            </ul>
         </div>
         @endif
     </div>
@@ -289,23 +324,46 @@
         font-size: 28px; color: var(--slate-400);
     }
 
-    .pagination .page-link {
-        border-radius: 8px !important;
-        margin: 0 3px;
-        border: 1px solid var(--slate-200);
-        color: var(--slate-700);
-        font-size: 13px; font-weight: 500;
-        padding: 6px 12px;
+    /* ====== CSS CUSTOM PAGINATION ====== */
+    .pagination-custom {
+        display: flex;
+        padding-left: 0;
+        list-style: none;
+        gap: 4px;
     }
-    .pagination .page-link:hover {
+
+    .pagination-custom .page-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        border: 1px solid var(--slate-200);
+        background: white;
+        color: var(--slate-700);
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .pagination-custom .page-link:hover {
         background: var(--primary-light);
         color: var(--primary-dark);
         border-color: var(--primary);
     }
-    .pagination .page-item.active .page-link {
+
+    .pagination-custom .page-item.active .page-link {
         background: var(--primary);
         border-color: var(--primary);
         color: white;
+    }
+
+    .pagination-custom .page-item.disabled .page-link {
+        background: var(--slate-100);
+        color: var(--slate-400);
+        pointer-events: none;
     }
 </style>
 @endsection
