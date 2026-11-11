@@ -1,12 +1,10 @@
+
 @extends('layouts.admin')
 
 @section('title', 'Data Mahasiswa')
 
 @section('content')
-
     <div class="container-fluid p-0">
-
-        {{-- Page Header --}}
         <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
                 <h1>Data Mahasiswa</h1>
@@ -17,7 +15,6 @@
             </a>
         </div>
 
-        {{-- Filter --}}
         <form action="{{ route('admin.mahasiswa.index') }}" method="GET" id="filterForm">
             <div class="card-custom p-4 mb-4">
                 <div class="row g-3 align-items-end">
@@ -58,7 +55,6 @@
                     </div>
                 </div>
 
-                {{-- Info filter aktif --}}
                 @if(request('search') || request('program_studi'))
                     <div class="active-filters mt-3">
                         <span class="filter-label">Filter aktif:</span>
@@ -89,7 +85,6 @@
             </div>
         </form>
 
-        {{-- Table --}}
         <div class="card-custom">
             <div class="table-responsive">
                 <table class="table-modern">
@@ -101,6 +96,7 @@
                             <th>Email</th>
                             <th>Program Studi</th>
                             <th>Angkatan</th>
+                            <th>Semester</th>
                             <th style="width: 180px;" class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -158,6 +154,16 @@
                                 </td>
 
                                 <td>
+                                    @if($mahasiswa->semester_aktif)
+                                        <span class="badge-semester">
+                                            Semester {{ $mahasiswa->semester_aktif }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+
+                                <td>
                                     <div class="d-flex justify-content-center gap-1">
                                         <a href="{{ route('admin.mahasiswa.show', $mahasiswa) }}"
                                             class="btn-action btn-action-view" title="Detail">
@@ -180,10 +186,9 @@
                                     </div>
                                 </td>
                             </tr>
-
                         @empty
                             <tr>
-                                <td colspan="7">
+                                <td colspan="8">
                                     <div class="empty-state">
                                         <div class="empty-state-icon">
                                             <i class="fa-solid fa-users"></i>
@@ -214,9 +219,7 @@
                 </div>
             @endif
         </div>
-
     </div>
-
 @endsection
 
 @section('styles')
@@ -238,7 +241,8 @@
             font-size: 11px;
         }
 
-        .badge-angkatan {
+        .badge-angkatan,
+        .badge-semester {
             display: inline-block;
             background: var(--slate-100);
             color: var(--slate-700);
@@ -246,6 +250,11 @@
             border-radius: 6px;
             font-size: 12px;
             font-weight: 700;
+        }
+
+        .badge-semester {
+            background: var(--primary-light);
+            color: var(--primary-dark);
         }
 
         .btn-action {

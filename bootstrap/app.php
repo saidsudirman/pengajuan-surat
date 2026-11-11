@@ -14,6 +14,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
         ]);
+
+        $middleware->redirectGuestsTo(function () {
+            $path = request()->path();
+
+            if (str_starts_with($path, 'admin')) {
+                return route('login.admin');
+            }
+
+            return route('login.mahasiswa');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

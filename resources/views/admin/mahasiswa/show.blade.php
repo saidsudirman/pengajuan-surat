@@ -1,12 +1,16 @@
+
 @extends('layouts.admin')
 
 @section('title', 'Detail Mahasiswa')
 
 @section('content')
 
+@php
+    $pengaturanAkademik = \App\Models\PengaturanAkademik::aktif();
+@endphp
+
 <div class="container-fluid p-0">
 
-    {{-- Page Header --}}
     <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
             <div class="breadcrumb-inline mb-2">
@@ -27,29 +31,35 @@
         </div>
     </div>
 
-    {{-- Profile Card --}}
     <div class="card-custom p-4 mb-4">
         <div class="d-flex flex-wrap align-items-center gap-4">
             <div class="profile-avatar">
                 {{ strtoupper(substr($mahasiswa->nama, 0, 1)) }}
             </div>
             <div class="flex-grow-1">
-                <h3 class="fw-bold mb-1" style="font-size: 22px;">{{ $mahasiswa->nama }}</h3>
+                <h3 class="fw-bold mb-2" style="font-size: 22px;">{{ $mahasiswa->nama }}</h3>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <span class="badge-nim">
                         <i class="fa-solid fa-id-card"></i> {{ $mahasiswa->nim }}
                     </span>
-                    <span class="badge-angkatan">Angkatan {{ $mahasiswa->angkatan ?? '-' }}</span>
+                    <span class="badge-angkatan">
+                        Angkatan {{ $mahasiswa->angkatan ?? '-' }}
+                    </span>
                     <span class="badge-prodi">
                         <i class="fa-solid fa-book"></i> {{ $mahasiswa->program_studi }}
                     </span>
+                    @if($mahasiswa->semester_aktif)
+                        <span class="badge-semester">
+                            <i class="fa-solid fa-layer-group"></i>
+                            Semester {{ $mahasiswa->semester_aktif }}
+                        </span>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
 
     <div class="row g-3">
-        {{-- Data Akademik --}}
         <div class="col-lg-8">
             <div class="card-custom p-4">
                 <div class="form-section-header">
@@ -141,18 +151,39 @@
                     <div class="col-md-4">
                         <div class="detail-item">
                             <div class="detail-label">
-                                <i class="fa-solid fa-layer-group"></i> Semester
+                                <i class="fa-solid fa-layer-group"></i> Semester Saat Ini
                             </div>
-                            <div class="detail-value">{{ $mahasiswa->semester ?? '-' }}</div>
+                            <div class="detail-value">
+                                @if($mahasiswa->semester_aktif)
+                                    <span class="badge-semester">
+                                        Semester {{ $mahasiswa->semester_aktif }}
+                                    </span>
+                                @else
+                                    -
+                                @endif
+                            </div>
                         </div>
                     </div>
 
                     <div class="col-md-4">
                         <div class="detail-item">
                             <div class="detail-label">
-                                <i class="fa-solid fa-calendar-days"></i> Tahun Akademik
+                                <i class="fa-solid fa-calendar-days"></i> Tahun Akademik Aktif
                             </div>
-                            <div class="detail-value">{{ $mahasiswa->tahun_akademik ?? '-' }}</div>
+                            <div class="detail-value">
+                                {{ $pengaturanAkademik->tahun_akademik ?? '-' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="detail-item">
+                            <div class="detail-label">
+                                <i class="fa-solid fa-calendar"></i> Periode Semester
+                            </div>
+                            <div class="detail-value">
+                                {{ $pengaturanAkademik->semester_aktif ?? '-' }}
+                            </div>
                         </div>
                     </div>
 
@@ -168,7 +199,6 @@
             </div>
         </div>
 
-        {{-- Akun Login --}}
         <div class="col-lg-4">
             <div class="card-custom p-4 mb-3">
                 <div class="form-section-header">
@@ -178,7 +208,7 @@
                     <div>
                         <h6 class="fw-bold mb-0">Akun Login</h6>
                         <small class="text-muted" style="font-size: 12.5px;">
-                            Kredensial mahasiswa
+                            Informasi akun mahasiswa
                         </small>
                     </div>
                 </div>
@@ -228,7 +258,6 @@
                 </div>
             </div>
 
-            {{-- Danger Zone --}}
             <div class="card-custom p-4" style="border-color: #FECACA;">
                 <div class="d-flex align-items-center gap-3 mb-3">
                     <div class="stat-icon red" style="width: 42px; height: 42px; font-size: 16px;">
@@ -243,8 +272,8 @@
                     Menghapus mahasiswa akan menghilangkan data dan akun login secara permanen.
                 </p>
                 <form action="{{ route('admin.mahasiswa.destroy', $mahasiswa) }}"
-                      method="POST"
-                      onsubmit="return confirm('Yakin ingin menghapus mahasiswa ini? Tindakan ini tidak dapat dibatalkan.')">
+                    method="POST"
+                    onsubmit="return confirm('Yakin ingin menghapus mahasiswa ini? Tindakan ini tidak dapat dibatalkan.')">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn-danger-custom w-100">
@@ -254,7 +283,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 @endsection
@@ -308,7 +336,8 @@
         font-family: 'Courier New', monospace;
     }
 
-    .badge-angkatan {
+    .badge-angkatan,
+    .badge-semester {
         display: inline-block;
         background: var(--slate-100);
         color: var(--slate-700);
@@ -316,6 +345,11 @@
         border-radius: 8px;
         font-size: 12px;
         font-weight: 700;
+    }
+
+    .badge-semester {
+        background: var(--primary-light);
+        color: var(--primary-dark);
     }
 
     .badge-prodi {

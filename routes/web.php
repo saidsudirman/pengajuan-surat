@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\PengajuanSuratController;
 use App\Http\Controllers\Admin\PengaturanSuratController;
 use App\Http\Controllers\Mahasiswa\DashboardController as MahasiswaDashboardController;
 use App\Http\Controllers\Mahasiswa\PengajuanController as MahasiswaPengajuanController;
+use App\Http\Controllers\Admin\PengaturanAkademikController;
 use App\Http\Controllers\Mahasiswa\ProfilController as MahasiswaProfilController;
 
 Route::get('/login/admin', [AuthController::class, 'showAdminLogin'])->name('login.admin');
@@ -34,6 +35,12 @@ Route::middleware(['auth', 'role:admin'])
 
         Route::post('/pengajuan-surats/{pengajuan_surat}/generate-pdf', [PengajuanSuratController::class, 'generatePdf'])
             ->name('pengajuan-surats.generate-pdf');
+
+        Route::get('/pengaturan-akademik', [PengaturanAkademikController::class, 'index'])
+            ->name('pengaturan-akademik.index');
+
+        Route::put('/pengaturan-akademik', [PengaturanAkademikController::class, 'update'])
+            ->name('pengaturan-akademik.update');
     });
 
 Route::middleware(['auth', 'role:mahasiswa'])

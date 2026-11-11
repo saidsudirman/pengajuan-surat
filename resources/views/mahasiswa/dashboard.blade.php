@@ -1,3 +1,4 @@
+
 @extends('layouts.mahasiswa')
 
 @section('title', 'Dashboard')
@@ -5,9 +6,13 @@
 
 @section('content')
 
+@php
+    $mahasiswa = \App\Models\Mahasiswa::where('user_id', auth()->id())->first();
+    $pengaturanAkademik = \App\Models\PengaturanAkademik::aktif();
+@endphp
+
 <div class="container-fluid p-0">
 
-    {{-- Greeting Banner --}}
     <div class="greeting-banner-mhs mb-4">
         <div class="greeting-banner-circle-1"></div>
         <div class="greeting-banner-circle-2"></div>
@@ -26,7 +31,58 @@
         </div>
     </div>
 
-    {{-- Stat Cards --}}
+    <div class="card-mhs p-3 p-md-4 mb-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="academic-icon-mhs">
+                <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <div>
+                <h6 class="fw-bold mb-0">Informasi Akademik</h6>
+                <small class="text-muted" style="font-size: 12px;">
+                    Informasi akademik berdasarkan pengaturan aktif
+                </small>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-6 col-lg-3">
+                <div class="academic-item-mhs">
+                    <div class="academic-label-mhs">Angkatan</div>
+                    <div class="academic-value-mhs">
+                        {{ $mahasiswa->angkatan ?? '-' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <div class="academic-item-mhs">
+                    <div class="academic-label-mhs">Semester Saat Ini</div>
+                    <div class="academic-value-mhs">
+                        {{ $mahasiswa?->semester_aktif ? 'Semester ' . $mahasiswa->semester_aktif : '-' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <div class="academic-item-mhs">
+                    <div class="academic-label-mhs">Tahun Akademik</div>
+                    <div class="academic-value-mhs">
+                        {{ $pengaturanAkademik->tahun_akademik ?? '-' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <div class="academic-item-mhs">
+                    <div class="academic-label-mhs">Periode Semester</div>
+                    <div class="academic-value-mhs">
+                        {{ $pengaturanAkademik->semester_aktif ?? '-' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
             <div class="card-mhs p-3">
@@ -85,7 +141,6 @@
         </div>
     </div>
 
-    {{-- Pengajuan Terbaru --}}
     <div class="card-mhs">
         <div class="p-3 p-md-4 border-bottom d-flex justify-content-between align-items-center section-header-mhs">
             <h6 class="fw-bold mb-0 section-title-mhs">Pengajuan Terbaru</h6>
@@ -95,50 +150,53 @@
         </div>
 
         @if($pengajuans->count() > 0)
-        <div class="p-2 p-md-3">
-            @foreach($pengajuans as $p)
-            <a href="{{ route('mahasiswa.pengajuan.show', $p) }}" class="pengajuan-item">
-                <div class="pengajuan-item-icon">
-                    <i class="fa-solid fa-file-lines"></i>
-                </div>
+            <div class="p-2 p-md-3">
+                @foreach($pengajuans as $p)
+                    <a href="{{ route('mahasiswa.pengajuan.show', $p) }}" class="pengajuan-item">
+                        <div class="pengajuan-item-icon">
+                            <i class="fa-solid fa-file-lines"></i>
+                        </div>
 
-                <div class="flex-grow-1 min-w-0">
-                    <div class="pengajuan-item-title text-truncate">
-                        {{ $p->jenisSurat->nama_surat ?? '-' }}
-                    </div>
-                    <small class="text-muted pengajuan-item-sub">
-                        {{ $p->nomor_pengajuan }} • {{ $p->created_at->format('d M Y') }}
-                    </small>
-                </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="pengajuan-item-title text-truncate">
+                                {{ $p->jenisSurat->nama_surat ?? '-' }}
+                            </div>
+                            <small class="text-muted pengajuan-item-sub">
+                                {{ $p->nomor_pengajuan }} • {{ $p->created_at->format('d M Y') }}
+                            </small>
+                        </div>
 
-                <div>
-                    @php
-                        $statusMap = [
-                            'menunggu' => 'Menunggu',
-                            'diproses' => 'Diproses',
-                            'selesai'  => 'Selesai',
-                            'ditolak'  => 'Ditolak',
-                        ];
-                        $statusKey  = $p->status;
-                        $statusText = $statusMap[$statusKey] ?? 'Menunggu';
-                    @endphp
-                    <span class="badge-status-mhs badge-status-{{ $statusKey }}">
-                        <span class="dot"></span>
-                        {{ $statusText }}
-                    </span>
-                </div>
-            </a>
-            @endforeach
-        </div>
+                        <div>
+                            @php
+                                $statusMap = [
+                                    'menunggu' => 'Menunggu',
+                                    'diproses' => 'Diproses',
+                                    'selesai' => 'Selesai',
+                                    'ditolak' => 'Ditolak',
+                                ];
+                                $statusKey = $p->status;
+                                $statusText = $statusMap[$statusKey] ?? 'Menunggu';
+                            @endphp
+
+                            <span class="badge-status-mhs badge-status-{{ $statusKey }}">
+                                <span class="dot"></span>
+                                {{ $statusText }}
+                            </span>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
         @else
-        <div class="p-5 text-center">
-            <i class="fa-regular fa-folder-open d-block mb-3 empty-icon-mhs"></i>
-            <h6 class="fw-bold mb-2">Belum Ada Pengajuan</h6>
-            <p class="text-muted mb-3 empty-text-mhs">Mulai ajukan surat akademik pertama Anda.</p>
-            <a href="{{ route('mahasiswa.pengajuan.create') }}" class="btn-mhs-primary">
-                <i class="fa-solid fa-plus"></i> Ajukan Surat
-            </a>
-        </div>
+            <div class="p-5 text-center">
+                <i class="fa-regular fa-folder-open d-block mb-3 empty-icon-mhs"></i>
+                <h6 class="fw-bold mb-2">Belum Ada Pengajuan</h6>
+                <p class="text-muted mb-3 empty-text-mhs">
+                    Mulai ajukan surat akademik pertama Anda.
+                </p>
+                <a href="{{ route('mahasiswa.pengajuan.create') }}" class="btn-mhs-primary">
+                    <i class="fa-solid fa-plus"></i> Ajukan Surat
+                </a>
+            </div>
         @endif
     </div>
 
@@ -148,7 +206,6 @@
 
 @section('styles')
 <style>
-    /* ============ GREETING BANNER ============ */
     .greeting-banner-mhs {
         position: relative;
         overflow: hidden;
@@ -207,7 +264,40 @@
         color: var(--primary-dark);
     }
 
-    /* ============ STAT CARDS ============ */
+    .academic-icon-mhs {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: var(--primary-light);
+        color: var(--primary-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+    }
+
+    .academic-item-mhs {
+        padding: 12px;
+        border-radius: 10px;
+        background: var(--slate-100);
+        height: 100%;
+    }
+
+    .academic-label-mhs {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--slate-500);
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+
+    .academic-value-mhs {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--dark);
+        word-break: break-word;
+    }
+
     .stat-icon-mhs {
         width: 44px;
         height: 44px;
@@ -219,10 +309,10 @@
         flex-shrink: 0;
     }
 
-    .stat-icon-gold   { background: var(--primary-light); color: var(--primary-dark); }
+    .stat-icon-gold { background: var(--primary-light); color: var(--primary-dark); }
     .stat-icon-orange { background: #FEF3C7; color: #B45309; }
-    .stat-icon-blue   { background: #DBEAFE; color: #1D4ED8; }
-    .stat-icon-green  { background: #D1FAE5; color: #047857; }
+    .stat-icon-blue { background: #DBEAFE; color: #1D4ED8; }
+    .stat-icon-green { background: #D1FAE5; color: #047857; }
 
     .stat-number {
         font-size: 22px;
@@ -239,7 +329,6 @@
         margin-top: 2px;
     }
 
-    /* ============ SECTION HEADER ============ */
     .section-header-mhs {
         border-color: var(--slate-200) !important;
     }
@@ -257,10 +346,8 @@
     }
 
     .section-link-mhs:hover { color: var(--primary); }
-
     .section-link-mhs i { font-size: 11px; }
 
-    /* ============ PENGAJUAN ITEM ============ */
     .pengajuan-item {
         display: flex;
         align-items: center;
@@ -300,7 +387,6 @@
         font-size: 11.5px;
     }
 
-    /* ============ BADGE STATUS ============ */
     .badge-status-mhs {
         display: inline-flex;
         align-items: center;
@@ -321,10 +407,9 @@
 
     .badge-status-menunggu { background: #FEF3C7; color: #B45309; }
     .badge-status-diproses { background: #DBEAFE; color: #1D4ED8; }
-    .badge-status-selesai  { background: #D1FAE5; color: #047857; }
-    .badge-status-ditolak  { background: #FEE2E2; color: #B91C1C; }
+    .badge-status-selesai { background: #D1FAE5; color: #047857; }
+    .badge-status-ditolak { background: #FEE2E2; color: #B91C1C; }
 
-    /* ============ EMPTY STATE ============ */
     .empty-icon-mhs {
         font-size: 40px;
         color: var(--slate-400);
@@ -335,11 +420,11 @@
         font-size: 13px;
     }
 
-    /* ============ RESPONSIVE ============ */
     @media (max-width: 575.98px) {
         .greeting-banner-mhs { padding: 20px; }
         .greeting-title { font-size: 17px; }
         .stat-number { font-size: 20px; }
+        .academic-value-mhs { font-size: 12.5px; }
     }
 </style>
 @endsection

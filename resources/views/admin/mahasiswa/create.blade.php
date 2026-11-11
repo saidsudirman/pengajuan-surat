@@ -160,41 +160,30 @@
                             @enderror
                         </div>
 
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label-custom">Angkatan</label>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label-custom">Angkatan <span class="text-danger">*</span></label>
                             <div class="input-icon-wrapper">
                                 <i class="fa-solid fa-calendar-check input-icon"></i>
-                                <input type="text"
-                                       name="angkatan"
-                                       value="{{ old('angkatan') }}"
-                                       class="form-control-custom"
-                                       placeholder="2024">
+                                <input
+                                    type="text"
+                                    name="angkatan"
+                                    value="{{ old('angkatan') }}"
+                                    class="form-control-custom @error('angkatan') is-invalid @enderror"
+                                    placeholder="Contoh: 2024/2025"
+                                    maxlength="9"
+                                    required
+                                >
                             </div>
+                            @error('angkatan')
+                                <div class="invalid-feedback-custom">
+                                    <i class="fa-solid fa-circle-exclamation"></i> {{ $message }}
+                                </div>
+                            @enderror
+                            <small class="text-muted d-block mt-2">
+                                Semester mahasiswa akan dihitung otomatis berdasarkan tahun akademik aktif.
+                            </small>
                         </div>
 
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label-custom">Semester</label>
-                            <div class="input-icon-wrapper">
-                                <i class="fa-solid fa-layer-group input-icon"></i>
-                                <input type="text"
-                                       name="semester"
-                                       value="{{ old('semester') }}"
-                                       class="form-control-custom"
-                                       placeholder="1">
-                            </div>
-                        </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label-custom">Tahun Akademik</label>
-                            <div class="input-icon-wrapper">
-                                <i class="fa-solid fa-calendar-days input-icon"></i>
-                                <input type="text"
-                                       name="tahun_akademik"
-                                       value="{{ old('tahun_akademik') }}"
-                                       class="form-control-custom"
-                                       placeholder="2026/2027">
-                            </div>
-                        </div>
 
                         <div class="col-12 mb-3">
                             <label class="form-label-custom">Alamat</label>

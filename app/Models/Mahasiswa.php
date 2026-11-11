@@ -40,4 +40,36 @@ class Mahasiswa extends Model
     {
         return $this->hasMany(PengajuanSurat::class);
     }
+
+    public function getSemesterAktifAttribute()
+    {
+        $pengaturan = PengaturanAkademik::aktif();
+
+        if (!$pengaturan || !$this->angkatan) {
+            return null;
+        }
+
+        if (!preg_match('/^(\d{4})\/(\d{4})$/', $this->angkatan, $angkatan)) {
+            return null;
+        }
+
+        if (!preg_match('/^(\d{4})\/(\d{4})$/', $pengaturan->tahun_akademik, $tahun)) {
+            return null;
+        }
+
+        $tahunMasuk = (int) $angkatan[1];
+        $tahunAktif = (int) $tahun[1];
+
+        if ($tahunMasuk > $tahunAktif) {
+            return null;
+        }
+
+        $semester = (($tahunAktif - $tahunMasuk) * 2) + 1;
+
+        if ($pengaturan->semester_aktif === 'Genap') {
+            $semester++;
+        }
+
+        return $semester;
+    }
 }

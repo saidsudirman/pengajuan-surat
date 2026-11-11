@@ -312,4 +312,4 @@
         margin-top: 2px;
     }
 </style>
-@endsection
+@endsection\]

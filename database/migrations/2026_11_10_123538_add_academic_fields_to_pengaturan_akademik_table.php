@@ -1,0 +1,24 @@
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('pengaturan_akademik', function (Blueprint $table) {
+            $table->string('tahun_akademik', 9)->after('id');
+            $table->string('semester_aktif', 10)->after('tahun_akademik');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('pengaturan_akademik', function (Blueprint $table) {
+            $table->dropColumn(['tahun_akademik', 'semester_aktif']);
+        });
+    }
+};

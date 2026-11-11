@@ -1,9 +1,14 @@
+
 @extends('layouts.mahasiswa')
 
 @section('title', 'Profil Saya')
 @section('subtitle', 'Kelola data pribadi Anda')
 
 @section('content')
+
+@php
+    $pengaturanAkademik = \App\Models\PengaturanAkademik::aktif();
+@endphp
 
 <div class="container-fluid p-0">
 
@@ -12,7 +17,6 @@
         <p>Kelola data pribadi dan keamanan akun Anda.</p>
     </div>
 
-
     <div class="row g-3">
 
         <div class="col-lg-4">
@@ -20,7 +24,9 @@
                 <div style="width: 90px; height: 90px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 800; margin: 0 auto 16px; box-shadow: 0 8px 20px rgba(201, 180, 88, 0.4);">
                     {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                 </div>
+
                 <h5 class="fw-bold mb-1">{{ auth()->user()->name }}</h5>
+
                 <p class="text-muted mb-3" style="font-size: 12.5px;">
                     {{ $mahasiswa->nim ?? '-' }}
                 </p>
@@ -29,6 +35,7 @@
                     <span style="display: inline-flex; align-items: center; gap: 5px; background: var(--primary-light); color: var(--primary-dark); padding: 5px 12px; border-radius: 50px; font-size: 11.5px; font-weight: 700;">
                         <i class="fa-solid fa-graduation-cap"></i> Mahasiswa
                     </span>
+
                     <span style="display: inline-flex; align-items: center; gap: 5px; background: var(--slate-100); color: var(--slate-700); padding: 5px 12px; border-radius: 50px; font-size: 11.5px; font-weight: 700;">
                         {{ $mahasiswa->angkatan ?? '-' }}
                     </span>
@@ -49,13 +56,24 @@
                 </div>
 
                 <div class="mb-3 pb-3" style="border-bottom: 1px solid var(--slate-200);">
-                    <small class="text-muted" style="font-size: 11px; font-weight: 700; text-transform: uppercase;">Semester</small>
-                    <div class="fw-bold" style="font-size: 13px;">{{ $mahasiswa->semester ?? '-' }}</div>
+                    <small class="text-muted" style="font-size: 11px; font-weight: 700; text-transform: uppercase;">Semester Saat Ini</small>
+                    <div class="fw-bold" style="font-size: 13px;">
+                        {{ $mahasiswa->semester_aktif ? 'Semester ' . $mahasiswa->semester_aktif : '-' }}
+                    </div>
+                </div>
+
+                <div class="mb-3 pb-3" style="border-bottom: 1px solid var(--slate-200);">
+                    <small class="text-muted" style="font-size: 11px; font-weight: 700; text-transform: uppercase;">Tahun Akademik</small>
+                    <div class="fw-bold" style="font-size: 13px;">
+                        {{ $pengaturanAkademik->tahun_akademik ?? '-' }}
+                    </div>
                 </div>
 
                 <div class="mb-0">
-                    <small class="text-muted" style="font-size: 11px; font-weight: 700; text-transform: uppercase;">Tahun Akademik</small>
-                    <div class="fw-bold" style="font-size: 13px;">{{ $mahasiswa->tahun_akademik ?? '-' }}</div>
+                    <small class="text-muted" style="font-size: 11px; font-weight: 700; text-transform: uppercase;">Periode Semester</small>
+                    <div class="fw-bold" style="font-size: 13px;">
+                        {{ $pengaturanAkademik->semester_aktif ?? '-' }}
+                    </div>
                 </div>
             </div>
         </div>
