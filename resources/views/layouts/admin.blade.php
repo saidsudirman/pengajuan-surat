@@ -980,7 +980,7 @@
             <a href="{{ route('admin.pengaturan-akademik.index') }}"
                 class="{{ request()->routeIs('admin.pengaturan-akademik.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-file-signature"></i>
-                <span>Pengaturan Akademik Surat</span>
+                <span>Pengaturan Akademik</span>
             </a>
 
             <a href="{{ route('admin.pengaturan-surat.index') }}"
