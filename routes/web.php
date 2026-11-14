@@ -25,6 +25,8 @@ Route::middleware(['auth', 'role:admin'])
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::resource('jenis-surats', JenisSuratController::class)->except(['show']);
         Route::resource('mahasiswa', MahasiswaController::class);
+        Route::put('/mahasiswa/{mahasiswa}/status', [MahasiswaController::class, 'updateStatus'])
+          ->name('mahasiswa.update-status');
         Route::resource('pengajuan-surats', PengajuanSuratController::class)
             ->only(['index', 'show', 'update']);
         Route::get('/pengaturan-surat', [PengaturanSuratController::class, 'index'])

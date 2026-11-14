@@ -62,6 +62,12 @@ class PengajuanController extends Controller
 
         abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
 
+        if ($mahasiswa->status_mahasiswa !== 'aktif') {
+            return redirect()
+                ->route('mahasiswa.dashboard')
+                ->with('error', 'Status mahasiswa Anda tidak aktif. Anda tidak dapat mengajukan surat akademik.');
+        }
+
         $jenisSurats = JenisSurat::with('fieldSurats')
             ->where('status', 'aktif')
             ->orderBy('nama_surat')
@@ -78,6 +84,12 @@ class PengajuanController extends Controller
         $mahasiswa = Auth::user()->mahasiswa;
 
         abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
+
+        if ($mahasiswa->status_mahasiswa !== 'aktif') {
+            return redirect()
+                ->route('mahasiswa.dashboard')
+                ->with('error', 'Status mahasiswa Anda tidak aktif. Anda tidak dapat mengajukan surat akademik.');
+        }
 
         $validated = $request->validate([
             'jenis_surat_id' => [
@@ -160,14 +172,7 @@ class PengajuanController extends Controller
         $uploadedPaths = [];
 
         try {
-            $pengajuan = DB::transaction(function () use (
-                $request,
-                $mahasiswa,
-                $jenisSurat,
-                $validated,
-                $dataTambahan,
-                &$uploadedPaths
-            ) {
+            $pengajuan = DB::transaction(function () use ($request, $mahasiswa, $jenisSurat, $validated, $dataTambahan, &$uploadedPaths) {
                 $tahun = now()->year;
 
                 $bulanRomawi = [

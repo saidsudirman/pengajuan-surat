@@ -9,6 +9,10 @@ class Mahasiswa extends Model
 {
     use HasFactory;
 
+    public const STATUS_AKTIF = 'aktif';
+    public const STATUS_CUTI = 'cuti';
+    public const STATUS_NONAKTIF = 'nonaktif';
+    public const STATUS_LULUS = 'lulus';
     protected $table = 'mahasiswa';
 
     protected $fillable = [
@@ -25,6 +29,7 @@ class Mahasiswa extends Model
         'angkatan',
         'semester',
         'tahun_akademik',
+        'status_mahasiswa',
     ];
 
     protected $casts = [

@@ -9,6 +9,37 @@
 @php
     $mahasiswa = \App\Models\Mahasiswa::where('user_id', auth()->id())->first();
     $pengaturanAkademik = \App\Models\PengaturanAkademik::aktif();
+
+    $statusMahasiswa = $mahasiswa->status_mahasiswa ?? 'nonaktif';
+
+    $informasiStatus = [
+        'aktif' => [
+            'warna' => 'success',
+            'ikon' => 'fa-circle-check',
+            'judul' => 'Status Mahasiswa Aktif',
+            'pesan' => 'Akun Anda berstatus aktif. Anda dapat mengajukan surat akademik.',
+        ],
+        'cuti' => [
+            'warna' => 'warning',
+            'ikon' => 'fa-calendar-xmark',
+            'judul' => 'Status Mahasiswa Cuti',
+            'pesan' => 'Anda sedang berstatus cuti. Pengajuan surat akademik sementara tidak tersedia.',
+        ],
+        'nonaktif' => [
+            'warna' => 'danger',
+            'ikon' => 'fa-circle-exclamation',
+            'judul' => 'Status Mahasiswa Nonaktif',
+            'pesan' => 'Akun Anda berstatus nonaktif. Anda tidak dapat mengajukan surat akademik.',
+        ],
+        'lulus' => [
+            'warna' => 'info',
+            'ikon' => 'fa-graduation-cap',
+            'judul' => 'Mahasiswa Telah Lulus',
+            'pesan' => 'Status akademik Anda telah dinyatakan lulus. Pengajuan surat akademik baru tidak tersedia.',
+        ],
+    ];
+
+    $statusInfo = $informasiStatus[$statusMahasiswa] ?? $informasiStatus['nonaktif'];
 @endphp
 
 <div class="container-fluid p-0">
@@ -25,9 +56,19 @@
                 Ajukan surat akademik dengan mudah, cepat, dan tanpa antre.
             </p>
 
-            <a href="{{ route('mahasiswa.pengajuan.create') }}" class="btn-mhs-primary btn-greeting-cta">
-                <i class="fa-solid fa-plus"></i> Ajukan Surat Baru
-            </a>
+            @if($statusMahasiswa === 'aktif')
+                <a href="{{ route('mahasiswa.pengajuan.create') }}" class="btn-mhs-primary btn-greeting-cta">
+                    <i class="fa-solid fa-plus"></i> Ajukan Surat Baru
+                </a>
+            @endif
+        </div>
+    </div>
+
+    <div class="alert alert-{{ $statusInfo['warna'] }} d-flex align-items-start gap-3 mb-4" role="alert">
+        <i class="fa-solid {{ $statusInfo['ikon'] }} fs-5 mt-1"></i>
+        <div>
+            <div class="fw-bold mb-1">{{ $statusInfo['judul'] }}</div>
+            <div style="font-size: 13px;">{{ $statusInfo['pesan'] }}</div>
         </div>
     </div>
 
@@ -174,6 +215,7 @@
                                     'selesai' => 'Selesai',
                                     'ditolak' => 'Ditolak',
                                 ];
+
                                 $statusKey = $p->status;
                                 $statusText = $statusMap[$statusKey] ?? 'Menunggu';
                             @endphp
@@ -191,11 +233,14 @@
                 <i class="fa-regular fa-folder-open d-block mb-3 empty-icon-mhs"></i>
                 <h6 class="fw-bold mb-2">Belum Ada Pengajuan</h6>
                 <p class="text-muted mb-3 empty-text-mhs">
-                    Mulai ajukan surat akademik pertama Anda.
+                    Belum ada riwayat pengajuan surat akademik.
                 </p>
-                <a href="{{ route('mahasiswa.pengajuan.create') }}" class="btn-mhs-primary">
-                    <i class="fa-solid fa-plus"></i> Ajukan Surat
-                </a>
+
+                @if($statusMahasiswa === 'aktif')
+                    <a href="{{ route('mahasiswa.pengajuan.create') }}" class="btn-mhs-primary">
+                        <i class="fa-solid fa-plus"></i> Ajukan Surat
+                    </a>
+                @endif
             </div>
         @endif
     </div>

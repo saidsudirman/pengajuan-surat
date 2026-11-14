@@ -100,6 +100,7 @@ class MahasiswaController extends Controller
                 'fakultas' => $validated['fakultas'] ?? null,
                 'program_studi' => $validated['program_studi'],
                 'angkatan' => $validated['angkatan'],
+                'status_mahasiswa' => Mahasiswa::STATUS_AKTIF,
             ]);
         });
 
@@ -184,6 +185,31 @@ class MahasiswaController extends Controller
         return redirect()
             ->route('admin.mahasiswa.index')
             ->with('success', 'Data mahasiswa berhasil diperbarui.');
+    }
+
+    public function updateStatus(Request $request, Mahasiswa $mahasiswa)
+    {
+        $validated = $request->validate([
+            'status_mahasiswa' => [
+                'required',
+                'in:aktif,cuti,nonaktif,lulus',
+            ],
+        ], [
+            'status_mahasiswa.required' => 'Status mahasiswa wajib dipilih.',
+            'status_mahasiswa.in' => 'Status mahasiswa tidak valid.',
+        ]);
+
+        $mahasiswa->update([
+            'status_mahasiswa' => $validated['status_mahasiswa'],
+        ]);
+
+        $pesan = $validated['status_mahasiswa'] === 'aktif'
+            ? 'Mahasiswa berhasil diaktifkan kembali.'
+            : 'Status mahasiswa berhasil diperbarui.';
+
+        return redirect()
+            ->route('admin.mahasiswa.show', $mahasiswa)
+            ->with('success', $pesan);
     }
 
     public function destroy(Mahasiswa $mahasiswa)
