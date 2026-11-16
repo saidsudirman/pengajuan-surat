@@ -56,20 +56,34 @@ class PengajuanController extends Controller
         );
     }
 
+
     public function create()
     {
         $mahasiswa = Auth::user()->mahasiswa;
 
         abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
 
-        if ($mahasiswa->status_mahasiswa !== 'aktif') {
+        $query = JenisSurat::with('fieldSurats')
+            ->where('status', 'aktif');
+
+        if ($mahasiswa->status_mahasiswa === 'aktif') {
+            // Mahasiswa aktif dapat melihat semua jenis surat.
+        } elseif ($mahasiswa->status_mahasiswa === 'nonaktif') {
+            // Mahasiswa nonaktif hanya dapat melihat Surat Keterangan Cuti Akademik.
+            $query->where(
+                'nama_surat',
+                'Surat Keterangan Cuti Akademik'
+            );
+        } else {
             return redirect()
                 ->route('mahasiswa.dashboard')
-                ->with('error', 'Status mahasiswa Anda tidak aktif. Anda tidak dapat mengajukan surat akademik.');
+                ->with(
+                    'error',
+                    'Status mahasiswa Anda tidak memungkinkan untuk mengajukan surat akademik.'
+                );
         }
 
-        $jenisSurats = JenisSurat::with('fieldSurats')
-            ->where('status', 'aktif')
+        $jenisSurats = $query
             ->orderBy('nama_surat')
             ->get();
 
@@ -79,17 +93,12 @@ class PengajuanController extends Controller
         );
     }
 
+
     public function store(Request $request)
     {
         $mahasiswa = Auth::user()->mahasiswa;
 
         abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
-
-        if ($mahasiswa->status_mahasiswa !== 'aktif') {
-            return redirect()
-                ->route('mahasiswa.dashboard')
-                ->with('error', 'Status mahasiswa Anda tidak aktif. Anda tidak dapat mengajukan surat akademik.');
-        }
 
         $validated = $request->validate([
             'jenis_surat_id' => [
@@ -129,6 +138,27 @@ class PengajuanController extends Controller
         $jenisSurat = JenisSurat::with('fieldSurats')
             ->where('status', 'aktif')
             ->findOrFail($validated['jenis_surat_id']);
+
+        if ($mahasiswa->status_mahasiswa === 'nonaktif') {
+
+            if ($jenisSurat->nama_surat !== 'Surat Keterangan Cuti Akademik') {
+                return redirect()
+                    ->route('mahasiswa.pengajuan.create')
+                    ->with(
+                        'error',
+                        'Mahasiswa berstatus Nonaktif hanya dapat mengajukan Surat Keterangan Cuti Akademik.'
+                    );
+            }
+
+        } elseif ($mahasiswa->status_mahasiswa !== 'aktif') {
+
+            return redirect()
+                ->route('mahasiswa.dashboard')
+                ->with(
+                    'error',
+                    'Status mahasiswa Anda tidak memungkinkan untuk mengajukan surat akademik.'
+                );
+        }
 
         $dynamicRules = [];
 
