@@ -57,41 +57,44 @@ class PengajuanController extends Controller
     }
 
 
-    public function create()
-    {
-        $mahasiswa = Auth::user()->mahasiswa;
+   
+public function create()
+{
+    $mahasiswa = Auth::user()->mahasiswa;
 
-        abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
+    abort_if(!$mahasiswa, 403, 'Data mahasiswa tidak ditemukan.');
 
-        $query = JenisSurat::with('fieldSurats')
-            ->where('status', 'aktif');
+    $query = JenisSurat::with('fieldSurats')
+        ->where('status', 'aktif');
 
-        if ($mahasiswa->status_mahasiswa === 'aktif') {
-            // Mahasiswa aktif dapat melihat semua jenis surat.
-        } elseif ($mahasiswa->status_mahasiswa === 'nonaktif') {
-            // Mahasiswa nonaktif hanya dapat melihat Surat Keterangan Cuti Akademik.
-            $query->where(
-                'nama_surat',
-                'Surat Keterangan Cuti Akademik'
-            );
-        } else {
-            return redirect()
-                ->route('mahasiswa.dashboard')
-                ->with(
-                    'error',
-                    'Status mahasiswa Anda tidak memungkinkan untuk mengajukan surat akademik.'
-                );
-        }
-
-        $jenisSurats = $query
-            ->orderBy('nama_surat')
-            ->get();
-
-        return view(
-            'mahasiswa.pengajuan.create',
-            compact('jenisSurats', 'mahasiswa')
+    if ($mahasiswa->status_mahasiswa === 'aktif') {
+        // Mahasiswa aktif dapat melihat semua jenis surat.
+    } elseif (
+        in_array($mahasiswa->status_mahasiswa, ['nonaktif', 'cuti'])
+    ) {
+        // Mahasiswa nonaktif dan cuti hanya dapat melihat surat cuti.
+        $query->where(
+            'nama_surat',
+            'Surat Keterangan Cuti Akademik'
         );
+    } else {
+        return redirect()
+            ->route('mahasiswa.dashboard')
+            ->with(
+                'error',
+                'Status mahasiswa Anda tidak memungkinkan untuk mengajukan surat akademik.'
+            );
     }
+
+    $jenisSurats = $query
+        ->orderBy('nama_surat')
+        ->get();
+
+    return view(
+        'mahasiswa.pengajuan.create',
+        compact('jenisSurats', 'mahasiswa')
+    );
+}
 
 
     public function store(Request $request)
@@ -139,26 +142,100 @@ class PengajuanController extends Controller
             ->where('status', 'aktif')
             ->findOrFail($validated['jenis_surat_id']);
 
-        if ($mahasiswa->status_mahasiswa === 'nonaktif') {
 
-            if ($jenisSurat->nama_surat !== 'Surat Keterangan Cuti Akademik') {
-                return redirect()
-                    ->route('mahasiswa.pengajuan.create')
-                    ->with(
-                        'error',
-                        'Mahasiswa berstatus Nonaktif hanya dapat mengajukan Surat Keterangan Cuti Akademik.'
-                    );
-            }
+$namaSuratCuti = 'Surat Keterangan Cuti Akademik';
 
-        } elseif ($mahasiswa->status_mahasiswa !== 'aktif') {
+$jenisCuti = null;
+$semesterCuti = null;
+$tahunAkademikCuti = null;
 
-            return redirect()
-                ->route('mahasiswa.dashboard')
+if ($jenisSurat->nama_surat === $namaSuratCuti) {
+    $pengaturanAkademik = \App\Models\PengaturanAkademik::aktif();
+
+    $semesterCuti = $mahasiswa->semester_aktif;
+    $tahunAkademikCuti = $pengaturanAkademik?->tahun_akademik;
+
+    if (!$semesterCuti || !$tahunAkademikCuti) {
+        return back()
+            ->withInput()
+            ->with('error', 'Pengaturan semester akademik belum tersedia.');
+    }
+
+    $riwayatCuti = PengajuanSurat::with('detailPengajuan')
+        ->where('mahasiswa_id', $mahasiswa->id)
+        ->where('status', 'selesai')
+        ->whereHas('jenisSurat', function ($query) use ($namaSuratCuti) {
+            $query->where('nama_surat', $namaSuratCuti);
+        })
+        ->whereHas('detailPengajuan', function ($query) {
+            $query->whereNotNull('semester_cuti');
+        })
+        ->get()
+        ->pluck('detailPengajuan.semester_cuti')
+        ->map(fn ($semester) => (int) $semester)
+        ->unique()
+        ->sortDesc()
+        ->values();
+
+    // Hitung jumlah cuti berturut-turut sebelum semester sekarang.
+    $jumlahCutiBerturut = 0;
+    $semesterYangDicari = $semesterCuti - 1;
+
+    foreach ($riwayatCuti as $semesterRiwayat) {
+        if ($semesterRiwayat === $semesterYangDicari) {
+            $jumlahCutiBerturut++;
+            $semesterYangDicari--;
+        }
+    }
+
+    if ($mahasiswa->status_mahasiswa === 'cuti') {
+        if (
+            $jumlahCutiBerturut !== 1 ||
+            $riwayatCuti->isEmpty() ||
+            $riwayatCuti->first() !== $semesterCuti - 1
+        ) {
+            return back()
+                ->withInput()
                 ->with(
                     'error',
-                    'Status mahasiswa Anda tidak memungkinkan untuk mengajukan surat akademik.'
+                    'Anda tidak dapat mengajukan perpanjangan cuti karena tidak memenuhi ketentuan semester berturut-turut.'
                 );
         }
+
+        $jenisCuti = 'perpanjangan';
+    } elseif (
+    in_array($mahasiswa->status_mahasiswa, ['aktif', 'nonaktif'])
+    ) {
+    // Mahasiswa aktif atau nonaktif mengajukan cuti baru.
+    $jenisCuti = 'baru';
+    }else {
+        return redirect()
+            ->route('mahasiswa.dashboard')
+            ->with(
+                'error',
+                'Status mahasiswa Anda tidak memungkinkan untuk mengajukan surat akademik.'
+            );
+    }
+} else {
+    if ($mahasiswa->status_mahasiswa === 'nonaktif') {
+        return redirect()
+            ->route('mahasiswa.pengajuan.create')
+            ->with(
+                'error',
+                'Mahasiswa berstatus Nonaktif hanya dapat mengajukan Surat Keterangan Cuti Akademik.'
+            );
+    }
+
+    if ($mahasiswa->status_mahasiswa !== 'aktif') {
+        return redirect()
+            ->route('mahasiswa.dashboard')
+            ->with(
+                'error',
+                'Status mahasiswa Anda tidak memungkinkan untuk mengajukan surat akademik.'
+            );
+    }
+}
+
 
         $dynamicRules = [];
 
@@ -202,8 +279,20 @@ class PengajuanController extends Controller
         $uploadedPaths = [];
 
         try {
-            $pengajuan = DB::transaction(function () use ($request, $mahasiswa, $jenisSurat, $validated, $dataTambahan, &$uploadedPaths) {
-                $tahun = now()->year;
+           
+$pengajuan = DB::transaction(function () use (
+    $request,
+    $mahasiswa,
+    $jenisSurat,
+    $validated,
+    $dataTambahan,
+    $jenisCuti,
+    $semesterCuti,
+    $tahunAkademikCuti,
+    &$uploadedPaths
+) {
+
+        $tahun = now()->year;
 
                 $bulanRomawi = [
                     1 => 'I',
@@ -248,10 +337,15 @@ class PengajuanController extends Controller
                     'tanggal_selesai' => null,
                 ]);
 
-                DetailPengajuan::create([
-                    'pengajuan_surat_id' => $pengajuan->id,
-                    'data_tambahan' => $dataTambahan,
-                ]);
+
+DetailPengajuan::create([
+    'pengajuan_surat_id' => $pengajuan->id,
+    'data_tambahan' => $dataTambahan,
+    'jenis_cuti' => $jenisCuti,
+    'semester_cuti' => $semesterCuti,
+    'tahun_akademik_cuti' => $tahunAkademikCuti,
+]);
+
 
                 if ($request->hasFile('dokumen')) {
                     foreach ($request->file('dokumen') as $file) {

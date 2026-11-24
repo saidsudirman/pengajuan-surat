@@ -198,6 +198,22 @@ public function generatePdf(PengajuanSurat $pengajuanSurat)
     ];
 
     $data = array_merge($data, $dataTambahan);
+    // Penyesuaian data khusus Surat Keterangan Cuti Akademik
+if (
+    $pengajuanSurat->jenisSurat->nama_surat === 'Surat Keterangan Cuti Akademik'
+) {
+    $detailCuti = $pengajuanSurat->detailPengajuan;
+
+    $data['semester'] = $detailCuti?->semester_cuti ?? '-';
+
+    $data['tahun_akademik'] = $detailCuti?->tahun_akademik_cuti ?? '-';
+
+    $data['jenis_cuti'] = match ($detailCuti?->jenis_cuti) {
+        'baru' => 'Cuti Baru',
+        'perpanjangan' => 'Perpanjangan Cuti',
+        default => '-',
+    };
+}
 
     $isiTemplate = preg_replace_callback(
         '/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/',

@@ -15,10 +15,14 @@ class DetailPengajuan extends Model
         'pengajuan_surat_id',
         'ipk',
         'data_tambahan',
+        'jenis_cuti',
+        'semester_cuti',
+        'tahun_akademik_cuti',
     ];
 
     protected $casts = [
         'data_tambahan' => 'array',
+        'semester_cuti' => 'integer',
     ];
 
     public function pengajuanSurat()
